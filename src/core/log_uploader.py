@@ -10,7 +10,7 @@ import requests
 from src.core.config_manager import ConfigManager
 from src.core.logger import get_current_log_path, get_logger
 from src.utils.constants import APP_VERSION
-from src.utils.helpers import get_installation_id, get_logs_dir
+from src.utils.helpers import get_installation_id, get_logs_dir, get_os_info
 
 
 class LogUploader:
@@ -34,7 +34,8 @@ class LogUploader:
         installation_id = get_installation_id()
         hostname = socket.gethostname()
         username = getpass.getuser()
-        platform_name = platform or 'Unknown'
+        os_info = get_os_info()
+        platform_name = platform or os_info.get('name', 'Unknown')
 
         if not self._config.log_upload_enabled:
             return (
@@ -48,6 +49,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                 ),
             )
         if not user_notes.strip():
@@ -62,6 +64,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                 ),
             )
 
@@ -75,6 +78,10 @@ class LogUploader:
                 'platform': platform_name,
                 'user_id': installation_id,
                 'user_notes': user_notes.strip(),
+                'os_name': os_info.get('name', ''),
+                'os_release': os_info.get('release', ''),
+                'os_version': os_info.get('version', ''),
+                'os_platform': os_info.get('platform', ''),
                 'log_files': log_files,
                 'screenshots': screenshots,
             }
@@ -104,6 +111,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                     response_text=response.text,
                 ),
             )
@@ -121,6 +129,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                     exception=exc,
                 ),
             )
@@ -137,6 +146,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                     exception=exc,
                 ),
             )
@@ -153,6 +163,7 @@ class LogUploader:
                     installation_id=installation_id,
                     hostname=hostname,
                     username=username,
+                    os_info=os_info,
                     exception=e,
                 ),
             )
@@ -166,6 +177,7 @@ class LogUploader:
         installation_id: str,
         hostname: str,
         username: str,
+        os_info: dict,
         response_text: str | None = None,
         exception: Exception | None = None,
     ) -> str:
@@ -178,6 +190,9 @@ class LogUploader:
             f'Installation ID: {installation_id}',
             f'Hostname: {hostname}',
             f'Username: {username}',
+            f'OS: {os_info.get("name", "")} {os_info.get("release", "")}',
+            f'OS Version: {os_info.get("version", "")}',
+            f'OS Platform: {os_info.get("platform", "")}',
             f'Message: {message}',
         ]
         if exception is not None:

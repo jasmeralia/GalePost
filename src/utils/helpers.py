@@ -1,9 +1,11 @@
 """Utility functions."""
 
 import os
+import platform
 import sys
 import uuid
 from pathlib import Path
+from typing import TypedDict
 
 
 def get_app_data_dir() -> Path:
@@ -56,3 +58,20 @@ def get_resource_path(filename: str) -> Path:
     else:
         base = Path(__file__).resolve().parent.parent.parent / 'resources'
     return base / filename
+
+
+class OsInfo(TypedDict):
+    name: str
+    release: str
+    version: str
+    platform: str
+
+
+def get_os_info() -> OsInfo:
+    """Return OS name/version details."""
+    return {
+        'name': platform.system(),
+        'release': platform.release(),
+        'version': platform.version(),
+        'platform': platform.platform(),
+    }

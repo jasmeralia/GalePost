@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.27] - 2026-02-14
+
+### Changed
+- Log upload error details now include OS info, hostname, and username by default
+- Log uploader payload includes OS details for the backend
+
+### Added
+- Lambda tests cover OS metadata fields
+
 ## [0.2.26] - 2026-02-14
 
 ### Changed

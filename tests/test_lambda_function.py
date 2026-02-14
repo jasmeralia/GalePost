@@ -60,6 +60,10 @@ def test_user_notes_in_metadata_and_email(monkeypatch):
             'platform': 'Bluesky',
             'user_id': 'abc',
             'user_notes': 'Attached an image and clicked OK',
+            'os_name': 'Windows',
+            'os_release': '11',
+            'os_version': '10.0.26100',
+            'os_platform': 'Windows-11-10.0.26100-SP0',
             'log_files': [],
             'screenshots': [],
         }
@@ -76,8 +80,11 @@ def test_user_notes_in_metadata_and_email(monkeypatch):
 
     assert metadata is not None
     assert metadata['user_notes'] == 'Attached an image and clicked OK'
+    assert metadata['os_name'] == 'Windows'
+    assert metadata['os_release'] == '11'
 
     assert fake_ses.sent
     email_body = fake_ses.sent[0]['Message']['Body']['Text']['Data']
     assert 'User Notes:' in email_body
     assert 'Attached an image and clicked OK' in email_body
+    assert 'OS: Windows 11' in email_body

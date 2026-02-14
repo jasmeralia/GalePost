@@ -30,6 +30,10 @@ def lambda_handler(event, context):
         "platform": "Bluesky",
         "user_id": "uuid",
         "user_notes": "what the user was doing",
+        "os_name": "Windows",
+        "os_release": "11",
+        "os_version": "10.0.26100",
+        "os_platform": "Windows-11-10.0.26100-SP0",
         "log_files": [{"filename": "...", "content": "base64..."}],
         "screenshots": [{"filename": "...", "content": "base64..."}]
     }
@@ -76,6 +80,10 @@ def lambda_handler(event, context):
     platform = body.get('platform', 'Unknown')
     user_id = body.get('user_id', 'unknown')
     user_notes = body.get('user_notes', '')
+    os_name = body.get('os_name', '')
+    os_release = body.get('os_release', '')
+    os_version = body.get('os_version', '')
+    os_platform = body.get('os_platform', '')
 
     uploaded_files = []
 
@@ -122,6 +130,10 @@ def lambda_handler(event, context):
         'platform': platform,
         'user_id': user_id,
         'user_notes': user_notes,
+        'os_name': os_name,
+        'os_release': os_release,
+        'os_version': os_version,
+        'os_platform': os_platform,
         'files': uploaded_files,
     }
     s3.put_object(
@@ -143,6 +155,9 @@ def lambda_handler(event, context):
             f'Platform: {platform}\n'
             f'User ID: {user_id}\n\n'
             f'User Notes:\n{user_notes}\n\n'
+            f'OS: {os_name} {os_release}\n'
+            f'OS Version: {os_version}\n'
+            f'OS Platform: {os_platform}\n\n'
             f'Files uploaded:\n{file_list}\n\n'
             f'S3 Bucket: {BUCKET_NAME}\n'
             f'S3 Prefix: {prefix}/\n'
