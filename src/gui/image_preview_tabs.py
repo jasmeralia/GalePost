@@ -266,7 +266,7 @@ class _ImageProcessWorker(QObject):
     def run(self):
         logger = get_logger()
         try:
-            logger.debug(
+            logger.info(
                 'Preview processing started',
                 extra={
                     'platform': self._specs.platform_name,
@@ -274,7 +274,7 @@ class _ImageProcessWorker(QObject):
                 },
             )
             result = process_image(self._image_path, self._specs, progress_cb=self.progress.emit)
-            logger.debug(
+            logger.info(
                 'Preview processing finished',
                 extra={
                     'platform': self._specs.platform_name,

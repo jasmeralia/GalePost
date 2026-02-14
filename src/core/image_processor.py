@@ -84,7 +84,7 @@ def process_image(
     """
     logger = get_logger()
     try:
-        logger.debug(
+        logger.info(
             'Image processing start',
             extra={
                 'platform': specs.platform_name,
@@ -97,7 +97,7 @@ def process_image(
 
         img = Image.open(image_path)
         original_size = img.size
-        logger.debug(
+        logger.info(
             'Loaded image',
             extra={
                 'platform': specs.platform_name,
@@ -115,13 +115,13 @@ def process_image(
             background = Image.new('RGB', img.size, (255, 255, 255))
             background.paste(img, mask=img.split()[3])
             img = background
-            logger.debug(
+            logger.info(
                 'Converted RGBA to RGB with white background',
                 extra={'platform': specs.platform_name},
             )
         elif img.mode != 'RGB':
             img = img.convert('RGB')
-            logger.debug('Converted image to RGB', extra={'platform': specs.platform_name})
+            logger.info('Converted image to RGB', extra={'platform': specs.platform_name})
         _emit_progress(progress_cb, 20)
 
         # Determine output format
@@ -170,7 +170,6 @@ def process_image(
                     'quality': quality,
                     'bytes': buf.tell(),
                     'max_bytes': max_bytes,
-                    'image_path': str(image_path),
                 },
             )
             if buf.tell() <= max_bytes:
@@ -202,7 +201,6 @@ def process_image(
                     'size': img.size,
                     'bytes': buf.tell(),
                     'max_bytes': max_bytes,
-                    'image_path': str(image_path),
                 },
             )
             _emit_progress(progress_cb, 70)
@@ -224,7 +222,7 @@ def process_image(
         ) as tmp:
             tmp.write(buf.getvalue())
             tmp_name = tmp.name
-        logger.debug(
+        logger.info(
             'Saved processed image',
             extra={
                 'platform': specs.platform_name,
@@ -267,7 +265,7 @@ def generate_thumbnail(image_path: Path, max_size: int = 400) -> Path | None:
         img.thumbnail((max_size, max_size), Image.LANCZOS)
         with tempfile.NamedTemporaryFile(suffix='_thumb.png', delete=False) as tmp:
             img.save(tmp.name, 'PNG')
-            get_logger().debug(
+            get_logger().info(
                 'Thumbnail generated',
                 extra={'input_path': str(image_path), 'output_path': tmp.name},
             )
