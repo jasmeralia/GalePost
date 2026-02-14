@@ -1,6 +1,7 @@
 """Upload logs and screenshots to the remote endpoint."""
 
 import base64
+from datetime import UTC, datetime
 
 import requests
 
@@ -28,6 +29,8 @@ class LogUploader:
         """
         logger = get_logger()
         endpoint = self._config.log_upload_endpoint
+        installation_id = get_installation_id()
+        platform_name = platform or 'Unknown'
 
         if not self._config.log_upload_enabled:
             return (
@@ -37,6 +40,9 @@ class LogUploader:
                     'LOG-DISABLED',
                     endpoint,
                     'Log upload disabled in settings.',
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
                 ),
             )
         if not user_notes.strip():
@@ -47,6 +53,9 @@ class LogUploader:
                     'LOG-NOTES-MISSING',
                     endpoint,
                     'User notes are required before uploading logs.',
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
                 ),
             )
 
@@ -57,8 +66,8 @@ class LogUploader:
             payload = {
                 'app_version': APP_VERSION,
                 'error_code': error_code or 'MANUAL',
-                'platform': platform or 'Unknown',
-                'user_id': get_installation_id(),
+                'platform': platform_name,
+                'user_id': installation_id,
                 'user_notes': user_notes.strip(),
                 'log_files': log_files,
                 'screenshots': screenshots,
@@ -85,11 +94,14 @@ class LogUploader:
                     error_code,
                     endpoint,
                     f'HTTP {response.status_code} response.',
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
                     response_text=response.text,
                 ),
             )
 
-        except requests.Timeout:
+        except requests.Timeout as exc:
             logger.error('Log upload timed out')
             return (
                 False,
@@ -98,9 +110,13 @@ class LogUploader:
                     'LOG-TIMEOUT',
                     endpoint,
                     'Request timed out while uploading logs.',
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
+                    exception=exc,
                 ),
             )
-        except requests.ConnectionError:
+        except requests.ConnectionError as exc:
             logger.error('Log upload connection error')
             return (
                 False,
@@ -109,6 +125,10 @@ class LogUploader:
                     'LOG-CONNECTION',
                     endpoint,
                     'Connection error while uploading logs.',
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
+                    exception=exc,
                 ),
             )
         except Exception as e:
@@ -120,6 +140,10 @@ class LogUploader:
                     'LOG-EXCEPTION',
                     endpoint,
                     str(e),
+                    platform_name=platform_name,
+                    installation_id=installation_id,
+                    user_notes=user_notes,
+                    exception=e,
                 ),
             )
 
@@ -128,14 +152,27 @@ class LogUploader:
         error_code: str,
         endpoint: str,
         message: str,
+        platform_name: str,
+        installation_id: str,
+        user_notes: str,
         response_text: str | None = None,
+        exception: Exception | None = None,
     ) -> str:
         lines = [
             f'Error Code: {error_code}',
             f'App Version: {APP_VERSION}',
+            f'Timestamp (UTC): {datetime.now(UTC).isoformat()}',
             f'Endpoint: {endpoint}',
+            f'Platform: {platform_name}',
+            f'Installation ID: {installation_id}',
             f'Message: {message}',
         ]
+        if exception is not None:
+            lines.append(f'Exception Type: {type(exception).__name__}')
+            lines.append(f'Exception: {exception}')
+        if user_notes.strip():
+            lines.append('User Notes:')
+            lines.append(user_notes.strip())
         if response_text:
             lines.append('Response:')
             lines.append(response_text)
