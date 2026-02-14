@@ -11,10 +11,6 @@ Parameters:
     Default: galepost.jasmer.tools
     Description: Custom domain for the API Gateway
 
-  HostedZoneId:
-    Type: AWS::Route53::HostedZone::Id
-    Description: Route53 hosted zone ID for jasmer.tools
-
   CertificateArn:
     Type: String
     Description: >
@@ -171,17 +167,6 @@ Resources:
       DomainName: !Ref ApiDomainName
       Stage: $default
 
-  # DNS record pointing domain to API Gateway
-  DnsRecord:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      HostedZoneId: !Ref HostedZoneId
-      Name: !Ref DomainName
-      Type: A
-      AliasTarget:
-        DNSName: !GetAtt ApiDomainName.RegionalDomainName
-        HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
-
 Outputs:
   ApiEndpoint:
     Description: API Gateway endpoint URL (before custom domain)
@@ -190,6 +175,14 @@ Outputs:
   CustomDomainUrl:
     Description: Custom domain URL for the log upload endpoint
     Value: !Sub https://${DomainName}/logs/upload
+
+  CustomDomainTarget:
+    Description: CNAME target for the custom domain (create DNS record manually)
+    Value: !GetAtt ApiDomainName.RegionalDomainName
+
+  CustomDomainHostedZoneId:
+    Description: API Gateway hosted zone ID (for reference)
+    Value: !GetAtt ApiDomainName.RegionalHostedZoneId
 
   LogBucketName:
     Description: S3 bucket storing uploaded logs

@@ -1,5 +1,5 @@
 {
-    "version": "0.2.27",
+    "version": "0.2.28",
     "last_selected_platforms": ["twitter", "bluesky"],
     "debug_mode": false,
     "auto_check_updates": true,
