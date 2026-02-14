@@ -3,10 +3,10 @@
 !include "MUI2.nsh"
 
 Name "GalePost"
-OutFile "GalePost-Setup-v0.2.16.exe"
+OutFile "GalePost-Setup-v0.2.17.exe"
 InstallDir "$PROGRAMFILES\GalePost"
-InstallDirRegKey HKCU "Software\GalePost" "InstallDir"
-RequestExecutionLevel user
+InstallDirRegKey HKLM "Software\GalePost" "InstallDir"
+RequestExecutionLevel admin
 
 ; Modern UI settings
 !define MUI_ABORTWARNING
@@ -25,6 +25,7 @@ RequestExecutionLevel user
 !insertmacro MUI_LANGUAGE "English"
 
 Section "Install"
+  CreateDirectory "$INSTDIR"
   SetOutPath "$INSTDIR"
   File "..\dist\GalePost.exe"
 
@@ -40,17 +41,17 @@ Section "Install"
   CreateShortCut "$DESKTOP\GalePost.lnk" "$INSTDIR\GalePost.exe"
 
   ; Registry
-  WriteRegStr HKCU "Software\GalePost" "InstallDir" "$INSTDIR"
-  WriteRegStr HKCU "Software\GalePost" "Version" "0.2.16"
+  WriteRegStr HKLM "Software\GalePost" "InstallDir" "$INSTDIR"
+  WriteRegStr HKLM "Software\GalePost" "Version" "0.2.17"
 
   ; Add/Remove Programs entry
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
     "DisplayName" "GalePost"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
-    "DisplayVersion" "0.2.16"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
+    "DisplayVersion" "0.2.17"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
     "Publisher" "GalePost"
 SectionEnd
 
@@ -64,6 +65,6 @@ Section "Uninstall"
   RMDir "$SMPROGRAMS\GalePost"
   Delete "$DESKTOP\GalePost.lnk"
 
-  DeleteRegKey HKCU "Software\GalePost"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost"
+  DeleteRegKey HKLM "Software\GalePost"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost"
 SectionEnd
