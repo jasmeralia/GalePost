@@ -4,7 +4,7 @@
 # Prerequisites:
 #   1. AWS CLI configured with credentials
 #   2. ACM certificate for galepost.jasmer.tools (note the ARN)
-#   4. SES verified sender identity for noreply@jasmer.tools
+#   4. SES verified sender identity for morgan@windsofstorm.net
 #
 # Usage:
 #   ./deploy.sh <certificate-arn> [aws-profile]
@@ -42,6 +42,11 @@ AWS_CLI=(aws)
 AWS_CLI+=(--region "$AWS_REGION")
 if [ -n "$AWS_PROFILE" ]; then
     AWS_CLI+=(--profile "$AWS_PROFILE")
+fi
+
+AWS_CMD_PREFIX="aws --region ${AWS_REGION}"
+if [ -n "$AWS_PROFILE" ]; then
+    AWS_CMD_PREFIX="aws --region ${AWS_REGION} --profile ${AWS_PROFILE}"
 fi
 
 echo "Deploying stack: ${STACK_NAME}"
@@ -100,12 +105,12 @@ echo "Next steps:"
 echo "  1. Package and deploy the Lambda code:"
 echo "     cd infrastructure"
 echo "     zip lambda.zip lambda_function.py"
-echo "     aws lambda update-function-code \\"
-echo "       --function-name \$(aws cloudformation describe-stacks \\"
+echo "     ${AWS_CMD_PREFIX} lambda update-function-code \\"
+echo "       --function-name \$(${AWS_CMD_PREFIX} cloudformation describe-stacks \\"
 echo "         --stack-name ${STACK_NAME} \\"
 echo "         --query 'Stacks[0].Outputs[?OutputKey==\`LambdaFunctionArn\`].OutputValue' \\"
 echo "         --output text) \\"
 echo "       --zip-file fileb://lambda.zip"
 echo ""
-echo "  2. Verify SES sender identity for noreply@jasmer.tools"
+echo "  2. Verify SES sender identity for morgan@windsofstorm.net"
 echo "  3. Test the endpoint: curl -X POST https://galepost.jasmer.tools/logs/upload"
