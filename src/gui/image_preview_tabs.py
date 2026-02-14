@@ -283,10 +283,11 @@ class _ImageProcessWorker(QObject):
             )
             self.finished.emit(result)
         except Exception as exc:
-            logger.debug(
+            logger.exception(
                 'Preview processing failed',
                 extra={
                     'platform': self._specs.platform_name,
+                    'image_path': str(self._image_path),
                     'error': str(exc),
                 },
             )

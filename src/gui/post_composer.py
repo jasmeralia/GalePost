@@ -156,6 +156,10 @@ class PostComposer(QWidget):
         else:
             self._clear_image()
 
+    def clear(self):
+        self._text_edit.clear()
+        self._clear_image()
+
     def _set_image_label(self, text: str, is_placeholder: bool):
         self._image_label.setText(text)
         if is_placeholder:

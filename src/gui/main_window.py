@@ -334,7 +334,24 @@ class MainWindow(QMainWindow):
                             'image_path': str(image_path),
                         },
                     )
-                    result = process_image(image_path, specs, progress_cb=progress.setValue)
+                    try:
+                        result = process_image(image_path, specs, progress_cb=progress.setValue)
+                    except Exception as exc:
+                        logger.exception(
+                            'Image processing failed during posting',
+                            extra={
+                                'platform': specs.platform_name,
+                                'image_path': str(image_path),
+                                'error': str(exc),
+                            },
+                        )
+                        QMessageBox.warning(
+                            self,
+                            'Image Error',
+                            f'{specs.platform_name}: Failed to process image.',
+                        )
+                        progress.cancel()
+                        return
                     progress.setValue(100)
                     self._processed_images[name] = result.path
             progress.close()
@@ -369,6 +386,7 @@ class MainWindow(QMainWindow):
         # Clear draft on full success
         if all(r.success for r in results):
             self._clear_draft()
+            self._composer.clear()
 
         self._cleanup_processed_images()
 
