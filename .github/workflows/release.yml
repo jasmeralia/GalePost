@@ -55,7 +55,13 @@ jobs:
         run: pyinstaller build/build.spec --distpath dist/ --workpath build/tmp --clean
 
       - name: Build installer
-        run: makensis build/installer.nsi
+        shell: pwsh
+        run: |
+          $nsis = "${env:ProgramFiles(x86)}\\NSIS\\makensis.exe"
+          if (-not (Test-Path $nsis)) {
+            $nsis = "${env:ProgramFiles}\\NSIS\\makensis.exe"
+          }
+          & $nsis build\\installer.nsi
 
       - name: Create portable zip
         shell: pwsh

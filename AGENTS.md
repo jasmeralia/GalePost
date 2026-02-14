@@ -1070,6 +1070,9 @@ PLATFORM_SPECS = {
 - Progress bars
 - Video preview/thumbnail
 
+### macOS Build
+- Add a macOS GitHub Actions job to produce a `.app` bundle
+
 ---
 
 ## Important Notes
