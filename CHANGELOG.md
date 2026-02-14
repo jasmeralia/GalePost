@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.48] - 2026-02-14
+- Verify auto-update installer size against the release asset before launching.
+
+## [0.2.47] - 2026-02-14
+- Validate auto-update installer downloads before launching them.
+
 ## [0.2.46] - 2026-02-14
 - Include hostname/username/os version in log upload emails and use hostname in subject.
 

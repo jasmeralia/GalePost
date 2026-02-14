@@ -67,18 +67,25 @@ class UpdateDownloadWorker(QThread):
     progress = pyqtSignal(int)
     finished = pyqtSignal(bool, object, str)
 
-    def __init__(self, url: str, target_path: Path):
+    def __init__(self, url: str, target_path: Path, expected_size: int = 0):
         super().__init__()
         self._url = url
         self._target_path = target_path
+        self._expected_size = expected_size
 
     def run(self):
+        logger = get_logger()
+        temp_path = self._target_path.with_suffix(self._target_path.suffix + '.part')
         try:
+            logger.info(
+                'Downloading update installer',
+                extra={'url': self._url, 'target_path': str(self._target_path)},
+            )
             with requests.get(self._url, stream=True, timeout=30) as response:
                 response.raise_for_status()
                 total = int(response.headers.get('Content-Length', '0')) or 0
                 received = 0
-                with open(self._target_path, 'wb') as f:
+                with open(temp_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=1024 * 256):
                         if not chunk:
                             continue
@@ -87,8 +94,28 @@ class UpdateDownloadWorker(QThread):
                         if total > 0:
                             percent = int((received / total) * 100)
                             self.progress.emit(min(100, percent))
+            file_size = temp_path.stat().st_size if temp_path.exists() else 0
+            if self._expected_size and file_size != self._expected_size:
+                raise ValueError(
+                    f'Installer download size mismatch ({file_size} of {self._expected_size} bytes).'
+                )
+            if file_size < 5 * 1024 * 1024:
+                raise ValueError(f'Installer download too small ({file_size} bytes).')
+            with open(temp_path, 'rb') as f:
+                header = f.read(2)
+            if header != b'MZ':
+                raise ValueError('Installer download is not a valid Windows executable.')
+            temp_path.replace(self._target_path)
+            logger.info(
+                'Update installer downloaded',
+                extra={'target_path': str(self._target_path), 'bytes': file_size},
+            )
             self.finished.emit(True, self._target_path, '')
         except Exception as exc:
+            logger.exception('Update download failed', extra={'error': str(exc)})
+            if temp_path.exists():
+                with contextlib.suppress(OSError):
+                    temp_path.unlink()
             self.finished.emit(False, None, str(exc))
 
 
@@ -616,7 +643,11 @@ class MainWindow(QMainWindow):
         progress.setAutoClose(True)
         progress.setAutoReset(True)
 
-        self._update_worker = UpdateDownloadWorker(update.download_url, target_path)
+        self._update_worker = UpdateDownloadWorker(
+            update.download_url,
+            target_path,
+            expected_size=update.download_size,
+        )
         self._update_worker.progress.connect(progress.setValue)
         self._update_worker.finished.connect(
             lambda ok, path, msg: self._on_update_downloaded(ok, path, msg)

@@ -21,6 +21,7 @@ class UpdateInfo:
     release_name: str
     release_notes: str
     download_url: str
+    download_size: int
     browser_url: str
 
 
@@ -50,10 +51,12 @@ def check_for_updates() -> UpdateInfo | None:
 
         # Find installer asset
         download_url = ''
+        download_size = 0
         for asset in data.get('assets', []):
             name = asset.get('name', '')
             if name.endswith('.exe') and 'Setup' in name:
                 download_url = asset.get('browser_download_url', '')
+                download_size = int(asset.get('size', 0) or 0)
                 break
 
         browser_url = data.get('html_url', f'https://github.com/{GITHUB_REPO}/releases/latest')
@@ -65,6 +68,7 @@ def check_for_updates() -> UpdateInfo | None:
             release_name=data.get('name', f'Version {latest_str}'),
             release_notes=data.get('body', ''),
             download_url=download_url,
+            download_size=download_size,
             browser_url=browser_url,
         )
 
