@@ -19,8 +19,8 @@ def detect_urls(text: str) -> list[dict]:
     CRITICAL: Facets use UTF-8 byte offsets, not character positions!
     """
     url_pattern = (
-        r'http[s]?://(?:[a-zA-Z]|[0-9]|[$\-_@.&+]|[!*\\(\\),]|/)'
-        r'|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        r'http[s]?://(?:[a-zA-Z0-9]|[$\-_@.&+]|[!*\\(\\),]|/|'
+        r'(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     )
 
     facets = []
