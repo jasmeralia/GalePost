@@ -1,0 +1,200 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Social Media Poster - Log Upload Backend.
+  Deploys Lambda, API Gateway (HTTP API) with custom domain
+  social.jasmer.tools, S3 bucket for log storage, and SES
+  email notifications.
+
+Parameters:
+  DomainName:
+    Type: String
+    Default: social.jasmer.tools
+    Description: Custom domain for the API Gateway
+
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: Route53 hosted zone ID for jasmer.tools
+
+  CertificateArn:
+    Type: String
+    Description: >
+      ARN of an ACM certificate for social.jasmer.tools.
+      Must be in the same region as this stack (or us-east-1 for
+      edge-optimized endpoints).
+
+  NotifyEmail:
+    Type: String
+    Default: morgan@windsofstorm.net
+    Description: Email address to receive error report notifications
+
+  SenderEmail:
+    Type: String
+    Default: noreply@jasmer.tools
+    Description: Email address used as the SES sender (must be verified)
+
+Resources:
+  # ── S3 Bucket for log storage ──────────────────────────────────────
+  LogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub social-media-poster-logs-${AWS::AccountId}
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldLogs
+            Status: Enabled
+            ExpirationInDays: 90
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ── IAM Role for Lambda ────────────────────────────────────────────
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub SMP-LogUpload-Lambda-${AWS::StackName}
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3AndSESAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub ${LogBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+
+  # ── Lambda Function ────────────────────────────────────────────────
+  LogUploadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub SMP-LogUpload-${AWS::StackName}
+      Runtime: python3.11
+      Handler: lambda_function.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          LOG_BUCKET_NAME: !Ref LogBucket
+          NOTIFY_EMAIL: !Ref NotifyEmail
+          SENDER_EMAIL: !Ref SenderEmail
+      Code:
+        ZipFile: |
+          # Placeholder - deploy actual code via aws lambda update-function-code
+          # or use a CI/CD pipeline to package infrastructure/lambda_function.py
+          def lambda_handler(event, context):
+              return {
+                  'statusCode': 200,
+                  'body': '{"success": true, "message": "placeholder"}'
+              }
+
+  # ── API Gateway (HTTP API) ─────────────────────────────────────────
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub SMP-LogUpload-API-${AWS::StackName}
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - POST
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+
+  # Lambda integration
+  HttpApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt LogUploadFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  # POST /logs/upload route
+  LogUploadRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /logs/upload
+      Target: !Sub integrations/${HttpApiIntegration}
+
+  # Default stage with auto-deploy
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+
+  # Permission for API Gateway to invoke Lambda
+  LambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref LogUploadFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*
+
+  # ── Custom Domain ──────────────────────────────────────────────────
+  ApiDomainName:
+    Type: AWS::ApiGatewayV2::DomainName
+    Properties:
+      DomainName: !Ref DomainName
+      DomainNameConfigurations:
+        - CertificateArn: !Ref CertificateArn
+          EndpointType: REGIONAL
+
+  # Map custom domain to the API
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    DependsOn: HttpApiStage
+    Properties:
+      ApiId: !Ref HttpApi
+      DomainName: !Ref ApiDomainName
+      Stage: $default
+
+  # DNS record pointing domain to API Gateway
+  DnsRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt ApiDomainName.RegionalDomainName
+        HostedZoneId: !GetAtt ApiDomainName.RegionalHostedZoneId
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL (before custom domain)
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+
+  CustomDomainUrl:
+    Description: Custom domain URL for the log upload endpoint
+    Value: !Sub https://${DomainName}/logs/upload
+
+  LogBucketName:
+    Description: S3 bucket storing uploaded logs
+    Value: !Ref LogBucket
+
+  LambdaFunctionArn:
+    Description: ARN of the log upload Lambda function
+    Value: !GetAtt LogUploadFunction.Arn

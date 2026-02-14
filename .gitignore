@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+*.whl
+.eggs/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Project specific
+logs/
+*.log
+*_auth.json
+app_config.json
+
+# PyInstaller
+*.spec
+*.manifest
+
+# Distribution
+*.exe
+*.msi
+*.zip
+
+# Environment
+.env
+.env.local

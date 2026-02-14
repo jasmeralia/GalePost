@@ -1,0 +1,17 @@
+{
+    "version": "0.1.1",
+    "last_selected_platforms": ["twitter", "bluesky"],
+    "debug_mode": false,
+    "auto_check_updates": true,
+    "log_upload_endpoint": "https://social.jasmer.tools/logs/upload",
+    "log_upload_enabled": true,
+    "window_geometry": {
+        "width": 900,
+        "height": 700,
+        "x": 100,
+        "y": 100
+    },
+    "last_image_directory": "",
+    "auto_save_draft": true,
+    "draft_auto_save_interval_seconds": 30
+}
