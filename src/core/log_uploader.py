@@ -21,7 +21,7 @@ class LogUploader:
         user_notes: str,
         error_code: str | None = None,
         platform: str | None = None,
-    ) -> tuple[bool, str]:
+    ) -> tuple[bool, str, str]:
         """Upload current logs and screenshots.
 
         Returns (success, message).
@@ -30,9 +30,25 @@ class LogUploader:
         endpoint = self._config.log_upload_endpoint
 
         if not self._config.log_upload_enabled:
-            return False, 'Log upload is disabled in settings.'
+            return (
+                False,
+                'Log upload is disabled in settings.',
+                self._format_error_details(
+                    'LOG-DISABLED',
+                    endpoint,
+                    'Log upload disabled in settings.',
+                ),
+            )
         if not user_notes.strip():
-            return False, 'Please describe what you were doing before sending logs.'
+            return (
+                False,
+                'Please describe what you were doing before sending logs.',
+                self._format_error_details(
+                    'LOG-NOTES-MISSING',
+                    endpoint,
+                    'User notes are required before uploading logs.',
+                ),
+            )
 
         try:
             log_files = self._collect_log_files()
@@ -59,20 +75,71 @@ class LogUploader:
                 data = response.json()
                 upload_id = data.get('upload_id', 'unknown')
                 logger.info(f'Logs uploaded successfully. ID: {upload_id}')
-                return True, f'Logs sent successfully! (ID: {upload_id})'
-            else:
-                logger.error(f'Log upload failed: HTTP {response.status_code}')
-                return False, f'Upload failed (HTTP {response.status_code}). Try again later.'
+                return True, f'Logs sent successfully! (ID: {upload_id})', ''
+            logger.error(f'Log upload failed: HTTP {response.status_code}')
+            error_code = f'LOG-HTTP-{response.status_code}'
+            return (
+                False,
+                f'Upload failed (HTTP {response.status_code}).',
+                self._format_error_details(
+                    error_code,
+                    endpoint,
+                    f'HTTP {response.status_code} response.',
+                    response_text=response.text,
+                ),
+            )
 
         except requests.Timeout:
             logger.error('Log upload timed out')
-            return False, 'Upload timed out. Please check your internet connection.'
+            return (
+                False,
+                'Upload timed out.',
+                self._format_error_details(
+                    'LOG-TIMEOUT',
+                    endpoint,
+                    'Request timed out while uploading logs.',
+                ),
+            )
         except requests.ConnectionError:
             logger.error('Log upload connection error')
-            return False, 'Could not connect to server. Please check your internet.'
+            return (
+                False,
+                'Could not connect to the log server.',
+                self._format_error_details(
+                    'LOG-CONNECTION',
+                    endpoint,
+                    'Connection error while uploading logs.',
+                ),
+            )
         except Exception as e:
             logger.error(f'Log upload error: {e}')
-            return False, f'Upload failed: {e}'
+            return (
+                False,
+                'Upload failed due to an unexpected error.',
+                self._format_error_details(
+                    'LOG-EXCEPTION',
+                    endpoint,
+                    str(e),
+                ),
+            )
+
+    def _format_error_details(
+        self,
+        error_code: str,
+        endpoint: str,
+        message: str,
+        response_text: str | None = None,
+    ) -> str:
+        lines = [
+            f'Error Code: {error_code}',
+            f'App Version: {APP_VERSION}',
+            f'Endpoint: {endpoint}',
+            f'Message: {message}',
+        ]
+        if response_text:
+            lines.append('Response:')
+            lines.append(response_text)
+        return '\n'.join(lines)
 
     def _collect_log_files(self) -> list[dict]:
         """Collect and base64-encode recent log files."""

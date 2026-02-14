@@ -403,11 +403,22 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage('Uploading logs...')
         QApplication.processEvents()
 
-        success, message = self._log_uploader.upload(user_notes=notes)
+        success, message, details = self._log_uploader.upload(user_notes=notes)
         if success:
             QMessageBox.information(self, 'Logs Sent', message)
         else:
-            QMessageBox.warning(self, 'Upload Failed', message)
+            msg = QMessageBox(self)
+            msg.setWindowTitle('Upload Failed')
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText(message)
+            msg.setInformativeText(
+                'You can copy the error details and send them in a private message.'
+            )
+            copy_btn = msg.addButton('Copy Error Details', QMessageBox.ActionRole)
+            msg.addButton('Close', QMessageBox.AcceptRole)
+            msg.exec_()
+            if msg.clickedButton() == copy_btn:
+                QApplication.clipboard().setText(details)
 
         self._status_bar.showMessage('Ready')
 
