@@ -1,5 +1,6 @@
 """First-run setup wizard for credential configuration."""
 
+from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
@@ -139,7 +140,8 @@ class BlueskySetupPage(QWizardPage):
         form.addRow('Username (handle):', self._identifier)
 
         hint = QLabel('Example: yourname.bsky.social')
-        hint.setStyleSheet('color: #888; font-size: 11px;')
+        muted = self.palette().color(QPalette.Disabled, QPalette.Text).name()
+        hint.setStyleSheet(f'color: {muted}; font-size: 11px;')
         form.addRow('', hint)
 
         self._app_password = QLineEdit()
@@ -148,7 +150,7 @@ class BlueskySetupPage(QWizardPage):
         form.addRow('App Password:', self._app_password)
 
         pw_hint = QLabel('Format: xxxx-xxxx-xxxx-xxxx')
-        pw_hint.setStyleSheet('color: #888; font-size: 11px;')
+        pw_hint.setStyleSheet(f'color: {muted}; font-size: 11px;')
         form.addRow('', pw_hint)
 
         layout.addLayout(form)

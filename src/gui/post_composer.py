@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -82,7 +83,7 @@ class PostComposer(QWidget):
         layout.addLayout(img_row)
 
         self._image_label = QLabel('No image selected')
-        self._image_label.setStyleSheet('color: #666; padding: 4px;')
+        self._set_image_label('No image selected', is_placeholder=True)
         layout.addWidget(self._image_label)
 
         self._update_counters()
@@ -127,15 +128,13 @@ class PostComposer(QWidget):
         if path:
             self._image_path = Path(path)
             self._last_image_dir = str(self._image_path.parent)
-            self._image_label.setText(f'{self._image_path.name}')
-            self._image_label.setStyleSheet('color: #333; padding: 4px;')
+            self._set_image_label(f'{self._image_path.name}', is_placeholder=False)
             self._clear_btn.setEnabled(True)
             self.image_changed.emit(self._image_path)
 
     def _clear_image(self):
         self._image_path = None
-        self._image_label.setText('No image selected')
-        self._image_label.setStyleSheet('color: #666; padding: 4px;')
+        self._set_image_label('No image selected', is_placeholder=True)
         self._clear_btn.setEnabled(False)
         self.image_changed.emit(None)
 
@@ -151,9 +150,16 @@ class PostComposer(QWidget):
     def set_image_path(self, path: Path | None):
         if path and path.exists():
             self._image_path = path
-            self._image_label.setText(f'{path.name}')
-            self._image_label.setStyleSheet('color: #333; padding: 4px;')
+            self._set_image_label(f'{path.name}', is_placeholder=False)
             self._clear_btn.setEnabled(True)
             self.image_changed.emit(path)
         else:
             self._clear_image()
+
+    def _set_image_label(self, text: str, is_placeholder: bool):
+        self._image_label.setText(text)
+        if is_placeholder:
+            muted = self.palette().color(QPalette.Disabled, QPalette.Text).name()
+            self._image_label.setStyleSheet(f'color: {muted}; padding: 4px;')
+        else:
+            self._image_label.setStyleSheet('padding: 4px;')

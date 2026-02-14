@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
+    QProgressBar,
     QPushButton,
     QTabWidget,
     QVBoxLayout,
@@ -15,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.core.image_processor import ProcessedImage, process_image
+from src.core.logger import get_logger
 from src.utils.constants import BLUESKY_SPECS, TWITTER_SPECS, PlatformSpecs
 
 
@@ -44,6 +46,12 @@ class ImagePreviewTab(QWidget):
         self._status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._status_label)
 
+        self._progress = QProgressBar()
+        self._progress.setRange(0, 100)
+        self._progress.setValue(0)
+        self._progress.setTextVisible(True)
+        layout.addWidget(self._progress)
+
         self._preview_label = QLabel()
         self._preview_label.setAlignment(Qt.AlignCenter)
         self._preview_label.setMinimumSize(400, 400)
@@ -60,12 +68,14 @@ class ImagePreviewTab(QWidget):
 
         self._loaded = True
         self._status_label.setText('Processing...')
+        self._progress.setValue(0)
 
         self._thread = QThread(self)
         self._worker = _ImageProcessWorker(self._image_path, self._specs)
         self._worker.moveToThread(self._thread)
 
         self._thread.started.connect(self._worker.run)
+        self._worker.progress.connect(self._progress.setValue)
         self._worker.finished.connect(self._on_preview_ready)
         self._worker.error.connect(self._on_preview_error)
         self._worker.finished.connect(self._cleanup_worker)
@@ -117,6 +127,7 @@ class ImagePreviewTab(QWidget):
         self._status_label.setText(f'Preview for {self._specs.platform_name}')
 
     def _on_preview_error(self, message: str):
+        self._progress.setValue(0)
         self._status_label.setText(f'Error: {message}')
 
     def get_processed_path(self) -> Path | None:
@@ -202,6 +213,7 @@ class ImagePreviewDialog(QDialog):
 class _ImageProcessWorker(QObject):
     finished = pyqtSignal(ProcessedImage)
     error = pyqtSignal(str)
+    progress = pyqtSignal(int)
 
     def __init__(self, image_path: Path, specs: PlatformSpecs):
         super().__init__()
@@ -209,8 +221,30 @@ class _ImageProcessWorker(QObject):
         self._specs = specs
 
     def run(self):
+        logger = get_logger()
         try:
-            result = process_image(self._image_path, self._specs)
+            logger.debug(
+                'Preview processing started',
+                extra={
+                    'platform': self._specs.platform_name,
+                    'image_path': str(self._image_path),
+                },
+            )
+            result = process_image(self._image_path, self._specs, progress_cb=self.progress.emit)
+            logger.debug(
+                'Preview processing finished',
+                extra={
+                    'platform': self._specs.platform_name,
+                    'processed_path': str(result.path),
+                },
+            )
             self.finished.emit(result)
         except Exception as exc:
+            logger.debug(
+                'Preview processing failed',
+                extra={
+                    'platform': self._specs.platform_name,
+                    'error': str(exc),
+                },
+            )
             self.error.emit(str(exc))

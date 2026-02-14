@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
-from PyQt5.QtCore import QThread, QTimer, QUrl, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
     QAction,
@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QStatusBar,
     QVBoxLayout,
@@ -24,6 +25,7 @@ from src.core.auth_manager import AuthManager
 from src.core.config_manager import ConfigManager
 from src.core.image_processor import process_image, validate_image
 from src.core.log_uploader import LogUploader
+from src.core.logger import get_logger
 from src.core.update_checker import check_for_updates
 from src.gui.image_preview_tabs import ImagePreviewDialog
 from src.gui.platform_selector import PlatformSelector
@@ -259,10 +261,20 @@ class MainWindow(QMainWindow):
         image_path = self._composer.get_image_path()
         if image_path and not self._processed_images:
             # Process now if not already previewed
+            progress = QProgressDialog('Preparing images...', None, 0, 100, self)
+            progress.setWindowTitle('Processing Image')
+            progress.setWindowModality(Qt.ApplicationModal)
+            progress.setMinimumDuration(0)
+            progress.setAutoClose(True)
+            progress.setAutoReset(True)
+            logger = get_logger()
             for name in selected:
                 platform = self._platforms.get(name)
                 if platform:
                     specs = platform.get_specs()
+                    progress.setLabelText(f'Processing for {specs.platform_name}...')
+                    progress.setValue(0)
+                    QApplication.processEvents()
                     error = validate_image(image_path, specs)
                     if error:
                         from src.core.error_handler import get_user_message
@@ -270,9 +282,19 @@ class MainWindow(QMainWindow):
                         QMessageBox.warning(
                             self, 'Image Error', f'{specs.platform_name}: {get_user_message(error)}'
                         )
+                        progress.cancel()
                         return
-                    result = process_image(image_path, specs)
+                    logger.debug(
+                        'Processing image for posting',
+                        extra={
+                            'platform': specs.platform_name,
+                            'image_path': str(image_path),
+                        },
+                    )
+                    result = process_image(image_path, specs, progress_cb=progress.setValue)
+                    progress.setValue(100)
                     self._processed_images[name] = result.path
+            progress.close()
 
         # Build platform dict for selected only
         post_platforms = {n: self._platforms[n] for n in selected if n in self._platforms}

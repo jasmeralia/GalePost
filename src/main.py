@@ -26,7 +26,6 @@ def main():
     # Create Qt application
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
-    app.setStyle('Fusion')
 
     # Enable high DPI support
     app.setAttribute(Qt.AA_EnableHighDpiScaling, True)

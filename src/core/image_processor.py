@@ -2,6 +2,7 @@
 
 import io
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -48,7 +49,16 @@ def validate_image(image_path: Path, specs: PlatformSpecs) -> str | None:
     return None
 
 
-def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
+def _emit_progress(progress_cb: Callable[[int], None] | None, value: int):
+    if progress_cb is not None:
+        progress_cb(value)
+
+
+def process_image(
+    image_path: Path,
+    specs: PlatformSpecs,
+    progress_cb: Callable[[int], None] | None = None,
+) -> ProcessedImage:
     """Resize and compress an image to meet platform specs.
 
     Pipeline:
@@ -57,18 +67,40 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
     3. Iteratively compress to meet file size limit
     """
     logger = get_logger()
+    logger.debug(
+        'Image processing start',
+        extra={
+            'platform': specs.platform_name,
+            'image_path': str(image_path),
+        },
+    )
+    _emit_progress(progress_cb, 0)
     original_file_size = image_path.stat().st_size
 
     img = Image.open(image_path)
     original_size = img.size
+    logger.debug(
+        'Loaded image',
+        extra={
+            'platform': specs.platform_name,
+            'mode': img.mode,
+            'size': original_size,
+            'file_size': original_file_size,
+            'format': img.format,
+        },
+    )
+    _emit_progress(progress_cb, 10)
 
     # Convert RGBA to RGB with white background
     if img.mode == 'RGBA':
         background = Image.new('RGB', img.size, (255, 255, 255))
         background.paste(img, mask=img.split()[3])
         img = background
+        logger.debug('Converted RGBA to RGB with white background')
     elif img.mode != 'RGB':
         img = img.convert('RGB')
+        logger.debug('Converted image to RGB')
+    _emit_progress(progress_cb, 20)
 
     # Determine output format
     out_format = (
@@ -76,6 +108,11 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
     )
     if out_format.upper() not in specs.supported_formats:
         out_format = 'JPEG'
+    logger.debug(
+        'Output format selected',
+        extra={'platform': specs.platform_name, 'format': out_format},
+    )
+    _emit_progress(progress_cb, 30)
 
     # Scale to fit max dimensions
     max_w, max_h = specs.max_image_dimensions
@@ -86,6 +123,7 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
         new_h = int(h * ratio)
         img = img.resize((new_w, new_h), Image.LANCZOS)
         logger.info(f'Resized {w}x{h} -> {new_w}x{new_h} for {specs.platform_name}')
+    _emit_progress(progress_cb, 40)
 
     # Iterative compression
     max_bytes = int(specs.max_file_size_mb * 1024 * 1024)
@@ -103,9 +141,20 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
             save_kwargs['optimize'] = True
         img.save(buf, **save_kwargs)
 
+        logger.debug(
+            'Compression attempt',
+            extra={
+                'platform': specs.platform_name,
+                'quality': quality,
+                'bytes': buf.tell(),
+                'max_bytes': max_bytes,
+            },
+        )
         if buf.tell() <= max_bytes:
             break
         quality -= 5
+        _emit_progress(progress_cb, 50)
+    _emit_progress(progress_cb, 60)
 
     # If still too large, reduce dimensions
     warning = None
@@ -123,10 +172,25 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
             save_kwargs['optimize'] = True
         img.save(buf, **save_kwargs)
         scale_factor -= 0.1
+        logger.debug(
+            'Dimension reduction attempt',
+            extra={
+                'platform': specs.platform_name,
+                'size': img.size,
+                'bytes': buf.tell(),
+                'max_bytes': max_bytes,
+            },
+        )
+        _emit_progress(progress_cb, 70)
 
     meets = buf.tell() <= max_bytes
     if not meets:
         warning = f'Could not compress below {specs.max_file_size_mb}MB'
+        logger.debug(
+            'Compression failed to meet size',
+            extra={'platform': specs.platform_name, 'warning': warning},
+        )
+    _emit_progress(progress_cb, 80)
 
     # Save to temp file
     ext = '.png' if out_format.upper() == 'PNG' else '.jpg'
@@ -136,6 +200,16 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
     ) as tmp:
         tmp.write(buf.getvalue())
         tmp_name = tmp.name
+    logger.debug(
+        'Saved processed image',
+        extra={
+            'platform': specs.platform_name,
+            'temp_path': tmp_name,
+            'processed_size': img.size,
+            'processed_bytes': buf.tell(),
+        },
+    )
+    _emit_progress(progress_cb, 100)
 
     return ProcessedImage(
         path=Path(tmp_name),
