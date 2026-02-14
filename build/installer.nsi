@@ -3,7 +3,7 @@
 !include "MUI2.nsh"
 
 Name "GalePost"
-OutFile "GalePost-Setup-v0.2.32.exe"
+OutFile "GalePost-Setup-v0.2.33.exe"
 InstallDir "$PROGRAMFILES\GalePost"
 InstallDirRegKey HKLM "Software\GalePost" "InstallDir"
 RequestExecutionLevel admin
@@ -30,6 +30,7 @@ RequestExecutionLevel admin
 
 Section "GalePost (required)" SecMain
   SectionIn RO
+  ExecWait "taskkill /IM GalePost.exe /T"
   CreateDirectory "$INSTDIR"
   SetOutPath "$INSTDIR"
   File "..\dist\GalePost.exe"
@@ -44,7 +45,7 @@ Section "GalePost (required)" SecMain
 
   ; Registry
   WriteRegStr HKLM "Software\GalePost" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\GalePost" "Version" "0.2.32"
+  WriteRegStr HKLM "Software\GalePost" "Version" "0.2.33"
 
   ; Add/Remove Programs entry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
@@ -52,7 +53,7 @@ Section "GalePost (required)" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
-    "DisplayVersion" "0.2.32"
+    "DisplayVersion" "0.2.33"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
     "Publisher" "GalePost"
 SectionEnd

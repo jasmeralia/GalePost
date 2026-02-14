@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import requests
 from PyQt5.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import (
@@ -58,6 +59,37 @@ class PostWorker(QThread):
             result = platform.post(self._text, image_path)
             results.append(result)
         self.finished.emit(results)
+
+
+class UpdateDownloadWorker(QThread):
+    """Download update installer in background."""
+
+    progress = pyqtSignal(int)
+    finished = pyqtSignal(bool, object, str)
+
+    def __init__(self, url: str, target_path: Path):
+        super().__init__()
+        self._url = url
+        self._target_path = target_path
+
+    def run(self):
+        try:
+            with requests.get(self._url, stream=True, timeout=30) as response:
+                response.raise_for_status()
+                total = int(response.headers.get('Content-Length', '0')) or 0
+                received = 0
+                with open(self._target_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=1024 * 256):
+                        if not chunk:
+                            continue
+                        f.write(chunk)
+                        received += len(chunk)
+                        if total > 0:
+                            percent = int((received / total) * 100)
+                            self.progress.emit(min(100, percent))
+            self.finished.emit(True, self._target_path, '')
+        except Exception as exc:
+            self.finished.emit(False, None, str(exc))
 
 
 class MainWindow(QMainWindow):
@@ -379,8 +411,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.Yes | QMessageBox.No,
             )
             if reply == QMessageBox.Yes:
-                url = update.download_url or update.browser_url
-                QDesktopServices.openUrl(QUrl(url))
+                self._download_update(update)
         else:
             QMessageBox.information(self, 'No Updates', "You're running the latest version!")
 
@@ -505,8 +536,49 @@ class MainWindow(QMainWindow):
                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Ignore,
                 )
                 if reply == QMessageBox.Yes:
-                    url = update.download_url or update.browser_url
-                    QDesktopServices.openUrl(QUrl(url))
+                    self._download_update(update)
+
+    def _download_update(self, update):
+        if not update.download_url:
+            QMessageBox.warning(
+                self,
+                'No Installer Found',
+                'No installer asset was found for this release.',
+            )
+            return
+
+        downloads_dir = Path.home() / 'Downloads'
+        downloads_dir.mkdir(parents=True, exist_ok=True)
+        filename = f'GalePost-Setup-v{update.latest_version}.exe'
+        target_path = downloads_dir / filename
+
+        progress = QProgressDialog('Downloading update...', None, 0, 100, self)
+        progress.setWindowTitle('Downloading Update')
+        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(True)
+        progress.setAutoReset(True)
+
+        self._update_worker = UpdateDownloadWorker(update.download_url, target_path)
+        self._update_worker.progress.connect(progress.setValue)
+        self._update_worker.finished.connect(
+            lambda ok, path, msg: self._on_update_downloaded(ok, path, msg)
+        )
+        self._update_worker.start()
+        progress.exec_()
+
+    def _on_update_downloaded(self, success: bool, path: Path | None, message: str):
+        if not success:
+            QMessageBox.warning(
+                self,
+                'Download Failed',
+                f'Failed to download the installer.\n{message}',
+            )
+            return
+
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+        self._auto_save_draft()
+        self.close()
 
     def closeEvent(self, event):  # noqa: N802
         self._save_geometry()
