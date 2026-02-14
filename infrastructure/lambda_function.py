@@ -27,6 +27,9 @@ def lambda_handler(event, context):
         "error_code": "BS-AUTH-EXPIRED",
         "user_id": "uuid",
         "user_notes": "what the user was doing",
+        "hostname": "desktop-123",
+        "username": "morgan",
+        "os_version": "10.0.26100",
         "os_platform": "Windows-11-10.0.26100-SP0",
         "log_files": [{"filename": "...", "content": "base64..."}],
         "screenshots": [{"filename": "...", "content": "base64..."}]
@@ -69,8 +72,10 @@ def lambda_handler(event, context):
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
     app_version = body.get('app_version', 'unknown')
     error_code = body.get('error_code', 'MANUAL')
-    user_id = body.get('user_id', 'unknown')
     user_notes = body.get('user_notes', '')
+    hostname = body.get('hostname', '')
+    username = body.get('username', '')
+    os_version = body.get('os_version', '')
     os_platform = body.get('os_platform', '')
     os_display = os_platform or 'Unknown OS'
 
@@ -87,16 +92,18 @@ def lambda_handler(event, context):
             f'Timestamp: {timestamp}\n'
             f'App Version: {app_version}\n'
             f'Error Code: {error_code}\n'
-            f'User ID: {user_id}\n\n'
-            f'User Notes:\n{user_notes}\n\n'
+            f'Hostname: {hostname}\n'
+            f'Username: {username}\n'
+            f'OS Version: {os_version}\n'
             f'OS Platform: {os_platform}\n\n'
+            f'User Notes:\n{user_notes}\n\n'
             f'Files attached:\n{file_list or "  (none)"}\n\n'
             f'Files skipped due to size limits:\n{skipped_list or "  (none)"}\n'
         )
 
         if attachments:
             raw_message = _build_raw_email(
-                subject=f'[GalePost] Error Report: {error_code} on {os_display}',
+                subject=f'[GalePost] Error Report: {error_code} on {hostname or os_display}',
                 body=email_body,
                 sender=SENDER_EMAIL,
                 recipient=NOTIFY_EMAIL,
@@ -113,7 +120,7 @@ def lambda_handler(event, context):
                 Destination={'ToAddresses': [NOTIFY_EMAIL]},
                 Message={
                     'Subject': {
-                        'Data': f'[GalePost] Error Report: {error_code} on {os_display}',
+                        'Data': f'[GalePost] Error Report: {error_code} on {hostname or os_display}',
                         'Charset': 'UTF-8',
                     },
                     'Body': {
