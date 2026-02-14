@@ -74,7 +74,6 @@ jobs:
         with:
           name: windows-build
           path: |
-            dist/GalePost.exe
             build/GalePost-Setup-*.exe
             dist/GalePost-*-portable.zip
 
@@ -182,6 +181,5 @@ jobs:
           name: "${{ github.ref_name }} - GalePost"
           body: ${{ steps.release_notes.outputs.body }}
           files: |
-            dist/GalePost.exe
             build/GalePost-Setup-*.exe
             dist/GalePost-*-portable.zip
