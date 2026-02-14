@@ -91,13 +91,44 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: windows-build
-          path: dist/
+          path: .
+
+      - name: Get latest published release tag
+        id: published_release
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          repo = os.environ.get("GITHUB_REPOSITORY")
+          url = f"https://api.github.com/repos/{repo}/releases/latest"
+
+          output_path = os.environ.get("GITHUB_OUTPUT")
+          tag = ""
+          try:
+              with urllib.request.urlopen(url, timeout=10) as resp:
+                  data = json.load(resp)
+              tag = data.get("tag_name", "")
+          except urllib.error.HTTPError:
+              tag = ""
+          except Exception:
+              tag = ""
+
+          if output_path:
+              with open(output_path, "a", encoding="utf-8") as fh:
+                  fh.write(f"tag={tag}\n")
+          PY
 
       - name: Generate release notes from commits
         id: release_notes
         run: |
           # Find the previous tag
-          PREV_TAG=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)
+          PREV_TAG="${{ steps.published_release.outputs.tag }}"
+          if [ -z "$PREV_TAG" ]; then
+            PREV_TAG=$(git tag --sort=-v:refname | head -n 2 | tail -n 1)
+          fi
           CURRENT_TAG="${{ github.ref_name }}"
 
           if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$CURRENT_TAG" ]; then
