@@ -1108,6 +1108,8 @@ Every change that modifies functionality, fixes bugs, or alters configuration **
    - `build/installer.nsi` → `OutFile` and registry `Version`/`DisplayVersion`
 2. **Add a CHANGELOG.md entry** under a new `## [x.y.z]` heading with the date and changes
 3. **Update README.md** if the change affects features, project structure, or usage instructions
+4. **Run lint + format checks using the venv**: `source venv/bin/activate && make lint`
+5. **Git workflow**: commit the changes, create a version tag, and push both commit and tag to GitHub
 
 Use semantic versioning: patch (0.1.x) for fixes/config, minor (0.x.0) for features, major (x.0.0) for breaking changes.
 
