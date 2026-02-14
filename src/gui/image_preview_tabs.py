@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QObject, Qt, QThread, pyqtSignal
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QDialog,
@@ -36,6 +36,8 @@ class ImagePreviewTab(QWidget):
         self._specs = specs
         self._loaded = False
         self._result: ProcessedImage | None = None
+        self._thread: QThread | None = None
+        self._worker: _ImageProcessWorker | None = None
 
         layout = QVBoxLayout(self)
         self._status_label = QLabel('Click this tab to generate preview...')
@@ -59,37 +61,63 @@ class ImagePreviewTab(QWidget):
         self._loaded = True
         self._status_label.setText('Processing...')
 
-        try:
-            self._result = process_image(self._image_path, self._specs)
-            result = self._result
+        self._thread = QThread(self)
+        self._worker = _ImageProcessWorker(self._image_path, self._specs)
+        self._worker.moveToThread(self._thread)
 
-            # Show thumbnail
-            pixmap = QPixmap(str(result.path))
-            if pixmap.width() > 400 or pixmap.height() > 400:
-                pixmap = pixmap.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self._preview_label.setPixmap(pixmap)
+        self._thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self._on_preview_ready)
+        self._worker.error.connect(self._on_preview_error)
+        self._worker.finished.connect(self._cleanup_worker)
+        self._worker.error.connect(self._cleanup_worker)
 
-            # Status
-            orig = f'{result.original_size[0]}x{result.original_size[1]}'
-            proc = f'{result.processed_size[0]}x{result.processed_size[1]}'
-            orig_size = _format_size(result.original_file_size)
-            proc_size = _format_size(result.processed_file_size)
+        self._thread.start()
 
-            if result.meets_requirements:
-                status = '<span style="color: #4CAF50; font-weight: bold;">\u2713 Meets requirements</span>'
-            else:
-                status = f'<span style="color: #F44336; font-weight: bold;">\u26a0 {result.warning}</span>'
+    def _cleanup_worker(self):
+        if self._thread is None:
+            return
+        self._thread.quit()
+        self._thread.wait()
+        self._thread.deleteLater()
+        self._thread = None
+        if self._worker is not None:
+            self._worker.deleteLater()
+            self._worker = None
 
-            self._details_label.setText(
-                f'<b>Original:</b> {orig} ({orig_size})<br>'
-                f'<b>Will resize to:</b> {proc} ({proc_size})<br>'
-                f'<b>Format:</b> {result.format} (quality {result.quality})<br><br>'
-                f'{status}'
+    def _on_preview_ready(self, result: ProcessedImage):
+        self._result = result
+
+        # Show thumbnail
+        pixmap = QPixmap(str(result.path))
+        if pixmap.width() > 400 or pixmap.height() > 400:
+            pixmap = pixmap.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        self._preview_label.setPixmap(pixmap)
+
+        # Status
+        orig = f'{result.original_size[0]}x{result.original_size[1]}'
+        proc = f'{result.processed_size[0]}x{result.processed_size[1]}'
+        orig_size = _format_size(result.original_file_size)
+        proc_size = _format_size(result.processed_file_size)
+
+        if result.meets_requirements:
+            status = (
+                '<span style="color: #4CAF50; font-weight: bold;">\u2713 Meets requirements</span>'
             )
-            self._status_label.setText(f'Preview for {self._specs.platform_name}')
+        else:
+            status = (
+                f'<span style="color: #F44336; font-weight: bold;">\u26a0 {result.warning}</span>'
+            )
 
-        except Exception as e:
-            self._status_label.setText(f'Error: {e}')
+        self._details_label.setText(
+            f'<b>Original:</b> {orig} ({orig_size})<br>'
+            f'<b>Will resize to:</b> {proc} ({proc_size})<br>'
+            f'<b>Format:</b> {result.format} (quality {result.quality})<br><br>'
+            f'{status}'
+        )
+        self._status_label.setText(f'Preview for {self._specs.platform_name}')
+
+    def _on_preview_error(self, message: str):
+        self._status_label.setText(f'Error: {message}')
 
     def get_processed_path(self) -> Path | None:
         if self._result:
@@ -169,3 +197,20 @@ class ImagePreviewDialog(QDialog):
         for platform, tab in self._tabs.items():
             result[platform] = tab.get_processed_path()
         return result
+
+
+class _ImageProcessWorker(QObject):
+    finished = pyqtSignal(ProcessedImage)
+    error = pyqtSignal(str)
+
+    def __init__(self, image_path: Path, specs: PlatformSpecs):
+        super().__init__()
+        self._image_path = image_path
+        self._specs = specs
+
+    def run(self):
+        try:
+            result = process_image(self._image_path, self._specs)
+            self.finished.emit(result)
+        except Exception as exc:
+            self.error.emit(str(exc))

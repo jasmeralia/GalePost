@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-02-14
+
+### Fixed
+- Clean up temporary processed images after posting to avoid unbounded storage growth
+
+## [0.2.3] - 2026-02-14
+
+### Fixed
+- Moved image preview processing off the UI thread to prevent hangs when attaching large images
+
 ## [0.2.2] - 2026-02-14
 
 ### Fixed

@@ -1,5 +1,6 @@
 """Main application window."""
 
+import contextlib
 import json
 from datetime import datetime
 from pathlib import Path
@@ -192,7 +193,7 @@ class MainWindow(QMainWindow):
         wizard.exec_()
 
     def _on_image_changed(self, image_path):
-        self._processed_images.clear()
+        self._cleanup_processed_images()
         if image_path:
             selected = self._platform_selector.get_selected()
             dialog = ImagePreviewDialog(image_path, selected, self)
@@ -303,6 +304,8 @@ class MainWindow(QMainWindow):
         # Clear draft on full success
         if all(r.success for r in results):
             self._clear_draft()
+
+        self._cleanup_processed_images()
 
     def _open_settings(self):
         dialog = SettingsDialog(self._config, self._auth_manager, self)
@@ -423,6 +426,13 @@ class MainWindow(QMainWindow):
                 self._platform_selector.set_selected(platforms)
         else:
             self._clear_draft()
+
+    def _cleanup_processed_images(self):
+        for path in self._processed_images.values():
+            if path and path.exists():
+                with contextlib.suppress(OSError):
+                    path.unlink()
+        self._processed_images.clear()
 
     def check_for_updates_on_startup(self):
         """Check for updates if enabled (call after show)."""
