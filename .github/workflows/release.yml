@@ -48,8 +48,14 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
+      - name: Install NSIS
+        run: choco install nsis -y
+
       - name: Build executable
         run: pyinstaller build/build.spec --distpath dist/ --workpath build/tmp --clean
+
+      - name: Build installer
+        run: makensis build/installer.nsi
 
       - name: Create portable zip
         shell: pwsh
@@ -63,6 +69,7 @@ jobs:
           name: windows-build
           path: |
             dist/GalePost.exe
+            GalePost-Setup-*.exe
             dist/GalePost-*-portable.zip
 
   release:
@@ -126,8 +133,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: "v${{ github.ref_name }} - GalePost"
+          name: "${{ github.ref_name }} - GalePost"
           body: ${{ steps.release_notes.outputs.body }}
           files: |
             dist/GalePost.exe
+            GalePost-Setup-*.exe
             dist/GalePost-*-portable.zip
