@@ -1,4 +1,4 @@
-# Social Media Multi-Poster - Phase 0 Context
+# GalePost - Phase 0 Context
 
 ## Project Overview
 Windows GUI application for posting to multiple social media platforms simultaneously. Built for non-technical users with robust error handling and remote troubleshooting capabilities.
@@ -24,7 +24,7 @@ APIs:
   - atproto (Bluesky - app password auth)
 Packaging: PyInstaller + NSIS installer
 Auth Storage: keyring (Windows Credential Manager)
-Version: 0.1.0 (Phase 0)
+Version: 0.2.0 (Phase 0)
 ```
 
 ---
@@ -32,7 +32,7 @@ Version: 0.1.0 (Phase 0)
 ## Project Structure
 
 ```
-social-media-poster/
+galepost/
 ├── src/
 │   ├── main.py                      # Application entry point
 │   ├── gui/
@@ -81,7 +81,7 @@ social-media-poster/
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── README.md
-├── LICENSE
+├── LICENSE.md
 └── .gitignore
 ```
 
@@ -259,7 +259,7 @@ Each error code maps to conversational explanation:
 
 ### Storage Locations
 - Development: Same directory as executable
-- Production: `%APPDATA%/SocialMediaPoster/auth/`
+- Production: `%APPDATA%/GalePost/auth/`
 - Credentials also stored in Windows Credential Manager via `keyring` for security
 - Setup wizard creates these files on first run
 
@@ -270,11 +270,11 @@ Each error code maps to conversational explanation:
 **app_config.json:**
 ```json
 {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "last_selected_platforms": ["twitter", "bluesky"],
     "debug_mode": false,
     "auto_check_updates": true,
-    "log_upload_endpoint": "https://api.example.com/logs/upload",
+    "log_upload_endpoint": "https://galepost.jasmer.tools/logs/upload",
     "log_upload_enabled": true,
     "window_geometry": {
         "width": 900,
@@ -402,7 +402,7 @@ logs/
 
 ### Log Entry Format
 ```
-2026-02-13 14:23:45,123 - SocialMediaPoster - ERROR - Error TW-AUTH-EXPIRED on Twitter
+2026-02-13 14:23:45,123 - GalePost - ERROR - Error TW-AUTH-EXPIRED on Twitter
 {
     "error_code": "TW-AUTH-EXPIRED",
     "platform": "Twitter",
@@ -449,12 +449,12 @@ logs/
 
 ### Endpoint Specification
 
-**URL:** `POST https://social.jasmer.tools/logs/upload`
+**URL:** `POST https://galepost.jasmer.tools/logs/upload`
 
 **Request Body:**
 ```json
 {
-    "app_version": "0.1.0",
+    "app_version": "0.2.0",
     "timestamp": "2026-02-13T14:23:45",
     "error_code": "BS-AUTH-EXPIRED",
     "platform": "Bluesky",
@@ -499,7 +499,7 @@ def lambda_handler(event, context):
     # Save to S3
     for log_file in body['log_files']:
         s3.put_object(
-            Bucket='social-media-poster-logs',
+            Bucket='galepost-logs',
             Key=f"{upload_id}/{log_file['filename']}",
             Body=base64.b64decode(log_file['content'])
         )
@@ -548,8 +548,8 @@ Use `packaging.version.parse()`:
     "body": "- Fixed Twitter auth\n- Improved error messages",
     "assets": [
         {
-            "name": "SocialMediaPoster-Setup-0.2.0.exe",
-            "browser_download_url": "https://github.com/.../SocialMediaPoster-Setup-0.2.0.exe"
+            "name": "GalePost-Setup-0.2.0.exe",
+            "browser_download_url": "https://github.com/.../GalePost-Setup-0.2.0.exe"
         }
     ]
 }
@@ -576,7 +576,7 @@ Prevent data loss if app crashes or Rin closes accidentally
 
 ### Implementation
 - Auto-save draft every 30 seconds (configurable)
-- Save location: `%APPDATA%/SocialMediaPoster/drafts/current_draft.json`
+- Save location: `%APPDATA%/GalePost/drafts/current_draft.json`
 - On app restart: prompt "Restore unsaved draft?"
 
 ### Draft File Format
@@ -610,7 +610,7 @@ Prevent data loss if app crashes or Rin closes accidentally
 ### Main Window
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ Social Media Poster v0.1.0                  [─] [□] [×]        │
+│ GalePost v0.2.0                              [─] [□] [×]        │
 ├────────────────────────────────────────────────────────────────┤
 │ File   Settings   Help                                         │
 ├────────────────────────────────────────────────────────────────┤
@@ -741,7 +741,7 @@ Request Details:
 POST https://bsky.social/xrpc/com.atproto.repo.createRecord
 Response: 401 Unauthorized
 
-Application: Social Media Poster v0.1.0
+Application: GalePost v0.2.0
 Log File: app_20260213_142345.log
 Screenshot: error_20260213_142401.png
 ```
@@ -751,7 +751,7 @@ Screenshot: error_20260213_142401.png
 **Welcome:**
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ Welcome to Social Media Poster!                        [×]    │
+│ Welcome to GalePost!                                   [×]    │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  Let's get you set up to post to Twitter and Bluesky!         │
@@ -843,8 +843,7 @@ python-dotenv>=1.0.0
 pytest>=8.0.0
 pytest-qt>=4.3.0
 pytest-cov>=4.1.0
-black>=24.0.0
-flake8>=7.0.0
+ruff>=0.8.0
 mypy>=1.8.0
 pyinstaller>=6.3.0
 ```
@@ -865,11 +864,11 @@ pip install -r requirements-dev.txt
 python src/main.py
 
 # Test
-pytest tests/
+make test
 
-# Format
-black src/
-flake8 src/
+# Lint & format
+make lint
+make lint-fix
 ```
 
 ### Production Build
@@ -877,12 +876,12 @@ flake8 src/
 # Build executable
 pyinstaller build/build.spec
 
-# Output: dist/SocialMediaPoster.exe
+# Output: dist/GalePost.exe
 
 # Create installer
 makensis build/installer.nsi
 
-# Output: SocialMediaPoster-Setup-v0.1.0.exe
+# Output: GalePost-Setup-v0.2.0.exe
 ```
 
 ---
@@ -962,16 +961,16 @@ makensis build/installer.nsi
 
 ### GitHub Repository
 ```
-jasmeralia/GalePost/
-├── .github/workflows/build.yml    # CI/CD
+jasmeralia/galepost/
+├── .github/workflows/release.yml  # Draft release on tag push
 ├── src/                           # Source code
 ├── resources/                     # Icons, configs
 ├── build/                         # Build scripts
 ├── tests/                         # Test suite
-├── docs/
-│   ├── SETUP_GUIDE.md            # For Rin
-│   └── DEVELOPMENT.md            # For you
+├── infrastructure/                # AWS CloudFormation + Lambda
 ├── README.md
+├── LICENSE.md
+├── CHANGELOG.md
 └── requirements.txt
 ```
 
@@ -982,8 +981,8 @@ jasmeralia/GalePost/
 - Stable: v1.0.0
 
 ### Release Assets
-- `SocialMediaPoster-Setup-v0.1.0.exe` (installer)
-- `SocialMediaPoster-v0.1.0-portable.zip` (no install needed)
+- `GalePost-Setup-v0.2.0.exe` (installer)
+- `GalePost-0.2.0-portable.zip` (no install needed)
 
 ---
 
@@ -992,12 +991,11 @@ jasmeralia/GalePost/
 ### Questions to Resolve:
 
 1. **GitHub repo name:**
-   - Repo: `jasmeralia/GalePost`
+   - Repo: `jasmeralia/galepost`
 
 2. **Log upload endpoint:**
-   - Need to set up Lambda + API Gateway
-   - Endpoint URL: `https://social.jasmer.tools/logs/upload`
-   - Do you want me to provide Lambda function code?
+   - Lambda + API Gateway deployed via CloudFormation
+   - Endpoint URL: `https://galepost.jasmer.tools/logs/upload`
 
 3. **App icon:**
    - Need 256x256 PNG
@@ -1084,7 +1082,7 @@ PLATFORM_SPECS = {
 5. **Reuse auth file format** - matches throwback script
 
 ### User Experience Priorities
-1. Idiot-proof (non-technical user)
+1. Simple and guided (non-technical user)
 2. Clear error messages
 3. Remote troubleshooting (logs + screenshots)
 4. No data loss (auto-save drafts)
@@ -1122,11 +1120,11 @@ Use semantic versioning: patch (0.1.x) for fixes/config, minor (0.x.0) for featu
 
 ## Log Upload Endpoint
 
-- **URL:** `https://social.jasmer.tools/logs/upload`
+- **URL:** `https://galepost.jasmer.tools/logs/upload`
 - **Infrastructure:** CloudFormation stack in `infrastructure/template.yaml`
 - **Sender email:** `noreply@jasmer.tools` (SES)
 - **Recipient email:** `morgan@windsofstorm.net`
 
 ---
 
-End of Phase 0 Context File
+End of GalePost Phase 0 Context File

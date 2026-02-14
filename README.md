@@ -1,8 +1,8 @@
-# Social Media Poster
+# GalePost
 
 Windows desktop application for posting to multiple social media platforms simultaneously. Built with PyQt5 for a non-technical end user, with robust error handling and remote troubleshooting via log uploads.
 
-**Current Version:** 0.1.1 (Phase 0)
+**Current Version:** 0.2.0 (Phase 0)
 
 ## Supported Platforms
 
@@ -25,6 +25,7 @@ Windows desktop application for posting to multiple social media platforms simul
 - Auto-update checker via GitHub Releases
 - Draft auto-save with restore on restart
 - Screenshot capture on errors
+- Help > About with credits and license info
 
 ## Quick Start
 
@@ -67,7 +68,7 @@ make clean       # Remove build artifacts
 ## Project Structure
 
 ```
-social-media-poster/
+galepost/
 ├── src/
 │   ├── main.py                      # Application entry point
 │   ├── gui/
@@ -114,6 +115,7 @@ social-media-poster/
 ├── requirements.txt
 ├── requirements-dev.txt
 ├── CHANGELOG.md
+├── LICENSE.md
 └── CLAUDE.md
 ```
 
@@ -121,7 +123,7 @@ social-media-poster/
 
 The log upload endpoint is deployed to AWS via CloudFormation:
 
-- **Endpoint:** `https://social.jasmer.tools/logs/upload`
+- **Endpoint:** `https://galepost.jasmer.tools/logs/upload`
 - **Stack:** Lambda (Python 3.11) + HTTP API Gateway + S3 + SES
 - **Notifications:** Email to `morgan@windsofstorm.net` via SES
 
@@ -134,11 +136,15 @@ See [infrastructure/](infrastructure/) for the CFT and deployment script.
 3. Update this README if features changed
 4. Commit, tag, and push:
    ```bash
-   git tag v0.1.1
-   git push origin v0.1.1
+   git tag v0.2.0
+   git push origin v0.2.0
    ```
 5. The GitHub Action builds a Windows executable and creates a **draft release** with commit history
 6. Review the draft on GitHub and publish when ready
+
+## License
+
+MIT License - Copyright (c) 2026 Morgan Blackthorne
 
 ## Roadmap
 

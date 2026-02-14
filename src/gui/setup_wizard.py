@@ -116,7 +116,7 @@ class TwitterSetupPage(QWizardPage):
         if key and secret and token and token_secret:
             self._auth_manager.save_twitter_auth(key, secret, token, token_secret)
 
-    def validatePage(self) -> bool:
+    def validatePage(self) -> bool:  # noqa: N802
         self._save_creds()
         return True
 
@@ -192,7 +192,7 @@ class BlueskySetupPage(QWizardPage):
         if identifier and password:
             self._auth_manager.save_bluesky_auth(identifier, password)
 
-    def validatePage(self) -> bool:
+    def validatePage(self) -> bool:  # noqa: N802
         self._save_creds()
         return True
 

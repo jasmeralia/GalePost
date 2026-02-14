@@ -311,6 +311,16 @@ class MainWindow(QMainWindow):
             self, f"About {APP_NAME}",
             f"<b>{APP_NAME}</b> v{APP_VERSION}<br><br>"
             f"Post to Twitter and Bluesky simultaneously.<br><br>"
+            f"Copyright \u00a9 2026 Morgan Blackthorne<br>"
+            f"Licensed under the MIT License<br><br>"
+            f"<b>Built with:</b><br>"
+            f"PyQt5 \u2013 GUI framework<br>"
+            f"Tweepy \u2013 Twitter API client<br>"
+            f"atproto \u2013 Bluesky AT Protocol SDK<br>"
+            f"Pillow \u2013 Image processing<br>"
+            f"keyring \u2013 Credential storage<br>"
+            f"Requests \u2013 HTTP client<br>"
+            f"Packaging \u2013 Version parsing<br><br>"
             f"Built for Rin with love."
         )
 
@@ -426,7 +436,7 @@ class MainWindow(QMainWindow):
                     url = update.download_url or update.browser_url
                     QDesktopServices.openUrl(QUrl(url))
 
-    def closeEvent(self, event):
+    def closeEvent(self, event):  # noqa: N802
         self._save_geometry()
         self._auto_save_draft()
         event.accept()

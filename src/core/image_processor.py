@@ -127,15 +127,15 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
 
     # Save to temp file
     ext = '.png' if out_format.upper() == 'PNG' else '.jpg'
-    tmp = tempfile.NamedTemporaryFile(
+    with tempfile.NamedTemporaryFile(
         suffix=f'_{specs.platform_name.lower()}{ext}',
         delete=False,
-    )
-    tmp.write(buf.getvalue())
-    tmp.close()
+    ) as tmp:
+        tmp.write(buf.getvalue())
+        tmp_name = tmp.name
 
     return ProcessedImage(
-        path=Path(tmp.name),
+        path=Path(tmp_name),
         original_size=original_size,
         processed_size=img.size,
         original_file_size=original_file_size,
@@ -152,9 +152,9 @@ def generate_thumbnail(image_path: Path, max_size: int = 400) -> Path | None:
     try:
         img = Image.open(image_path)
         img.thumbnail((max_size, max_size), Image.LANCZOS)
-        tmp = tempfile.NamedTemporaryFile(suffix='_thumb.png', delete=False)
-        img.save(tmp.name, 'PNG')
-        return Path(tmp.name)
+        with tempfile.NamedTemporaryFile(suffix='_thumb.png', delete=False) as tmp:
+            img.save(tmp.name, 'PNG')
+            return Path(tmp.name)
     except Exception as e:
         get_logger().warning(f"Thumbnail generation failed: {e}")
         return None

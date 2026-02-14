@@ -101,9 +101,6 @@ class BlueskyPlatform(BasePlatform):
             if image_path:
                 try:
                     img_data = image_path.read_bytes()
-                    # Determine mime type
-                    suffix = image_path.suffix.lower()
-                    mime = 'image/png' if suffix == '.png' else 'image/jpeg'
                     upload = self._client.upload_blob(img_data)
                     images = [{
                         "alt": "",

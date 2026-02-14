@@ -55,15 +55,15 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          Compress-Archive -Path dist/SocialMediaPoster.exe -DestinationPath "dist/SocialMediaPoster-${version}-portable.zip"
+          Compress-Archive -Path dist/GalePost.exe -DestinationPath "dist/GalePost-${version}-portable.zip"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: |
-            dist/SocialMediaPoster.exe
-            dist/SocialMediaPoster-*-portable.zip
+            dist/GalePost.exe
+            dist/GalePost-*-portable.zip
 
   release:
     name: Create Draft Release
@@ -126,8 +126,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: "v${{ github.ref_name }} - Social Media Poster"
+          name: "v${{ github.ref_name }} - GalePost"
           body: ${{ steps.release_notes.outputs.body }}
           files: |
-            dist/SocialMediaPoster.exe
-            dist/SocialMediaPoster-*-portable.zip
+            dist/GalePost.exe
+            dist/GalePost-*-portable.zip

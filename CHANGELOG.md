@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-14
+
+### Changed
+- Rebranded application from "Social Media Poster" to "GalePost"
+- Repository renamed to `jasmeralia/galepost`
+- Log upload endpoint moved to `galepost.jasmer.tools`
+- All build artifacts now use GalePost naming (exe, installer, portable zip)
+- Windows AppData directory changed to `GalePost`
+- Updated GitHub Actions workflow for GalePost build artifacts
+
+### Added
+- Help > About dialog with copyright, MIT license, and module credits
+- LICENSE.md (MIT, Copyright Morgan Blackthorne)
+
 ## [0.1.1] - 2026-02-14
 
 ### Changed
