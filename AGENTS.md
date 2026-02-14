@@ -1101,6 +1101,7 @@ Every change that modifies functionality, fixes bugs, or alters configuration **
    - `resources/default_config.json` → `"version"`
    - `build/version_info.txt` → `filevers`, `prodvers`, `FileVersion`, `ProductVersion`
    - `build/installer.nsi` → `OutFile` and registry `Version`/`DisplayVersion`
+   - `README.md` → `Current Version` line and the example `git tag` / `git push` commands
 2. **Add a CHANGELOG.md entry** under a new `## [x.y.z]` heading with the date and changes
 3. **Update README.md** if the change affects features, project structure, or usage instructions
 4. **Run lint + format checks using the venv**: `source venv/bin/activate && make lint`  
@@ -1128,7 +1129,7 @@ Phase versioning:
 
 - **URL:** `https://galepost.jasmer.tools/logs/upload`
 - **Infrastructure:** CloudFormation stack in `infrastructure/template.yaml`
-- **Sender email:** `noreply@jasmer.tools` (SES)
+- **Sender email:** `morgan@windsofstorm.net` (SES)
 - **Recipient email:** `morgan@windsofstorm.net`
 
 ---
