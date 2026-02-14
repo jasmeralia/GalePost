@@ -1,6 +1,7 @@
 """Bluesky platform implementation using atproto."""
 
 import re
+from datetime import UTC, datetime
 from pathlib import Path
 
 from atproto import Client as BskyClient
@@ -127,7 +128,7 @@ class BlueskyPlatform(BasePlatform):
             record = {
                 '$type': 'app.bsky.feed.post',
                 'text': text,
-                'createdAt': self._client._get_time(),
+                'createdAt': datetime.now(UTC).isoformat(),
             }
             if facets:
                 record['facets'] = facets
