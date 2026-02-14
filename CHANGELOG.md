@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.14] - 2026-02-14
+
+### Added
+- Required user description when sending logs; lambda stores it and includes it in email
+- Tests for the log upload lambda
+
+### Changed
+- Image preview dialog now includes Cancel and only enables OK when all resizes finish
+
+### Fixed
+- Release assets now attach installer and portable zip correctly
+
 ## [0.2.13] - 2026-02-14
 
 ### Changed

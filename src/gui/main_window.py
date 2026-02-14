@@ -28,6 +28,7 @@ from src.core.log_uploader import LogUploader
 from src.core.logger import get_logger
 from src.core.update_checker import check_for_updates
 from src.gui.image_preview_tabs import ImagePreviewDialog
+from src.gui.log_submit_dialog import LogSubmitDialog
 from src.gui.platform_selector import PlatformSelector
 from src.gui.post_composer import PostComposer
 from src.gui.results_dialog import ResultsDialog
@@ -201,6 +202,16 @@ class MainWindow(QMainWindow):
             dialog = ImagePreviewDialog(image_path, selected, self)
             if dialog.exec_() == dialog.Accepted:
                 self._processed_images = dialog.get_processed_paths()
+            elif dialog.had_errors:
+                reply = QMessageBox.question(
+                    self,
+                    'Image Processing Failed',
+                    'One or more image previews failed to process.\n\n'
+                    'Would you like to send logs to Jas?',
+                    QMessageBox.Yes | QMessageBox.No,
+                )
+                if reply == QMessageBox.Yes:
+                    self._send_logs()
             self._config.last_image_directory = str(image_path.parent)
 
     def _on_platforms_changed(self, platforms):
@@ -376,10 +387,23 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage('Ready')
 
     def _send_logs(self):
+        dialog = LogSubmitDialog(self)
+        if dialog.exec_() != dialog.Accepted:
+            return
+
+        notes = dialog.get_notes()
+        if not notes:
+            QMessageBox.warning(
+                self,
+                'Missing Description',
+                'Please describe what you were doing before sending logs.',
+            )
+            return
+
         self._status_bar.showMessage('Uploading logs...')
         QApplication.processEvents()
 
-        success, message = self._log_uploader.upload()
+        success, message = self._log_uploader.upload(user_notes=notes)
         if success:
             QMessageBox.information(self, 'Logs Sent', message)
         else:

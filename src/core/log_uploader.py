@@ -17,7 +17,10 @@ class LogUploader:
         self._config = config
 
     def upload(
-        self, error_code: str | None = None, platform: str | None = None
+        self,
+        user_notes: str,
+        error_code: str | None = None,
+        platform: str | None = None,
     ) -> tuple[bool, str]:
         """Upload current logs and screenshots.
 
@@ -28,6 +31,8 @@ class LogUploader:
 
         if not self._config.log_upload_enabled:
             return False, 'Log upload is disabled in settings.'
+        if not user_notes.strip():
+            return False, 'Please describe what you were doing before sending logs.'
 
         try:
             log_files = self._collect_log_files()
@@ -38,6 +43,7 @@ class LogUploader:
                 'error_code': error_code or 'MANUAL',
                 'platform': platform or 'Unknown',
                 'user_id': get_installation_id(),
+                'user_notes': user_notes.strip(),
                 'log_files': log_files,
                 'screenshots': screenshots,
             }

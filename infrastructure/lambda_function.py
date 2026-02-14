@@ -29,6 +29,7 @@ def lambda_handler(event, context):
         "error_code": "BS-AUTH-EXPIRED",
         "platform": "Bluesky",
         "user_id": "uuid",
+        "user_notes": "what the user was doing",
         "log_files": [{"filename": "...", "content": "base64..."}],
         "screenshots": [{"filename": "...", "content": "base64..."}]
     }
@@ -57,6 +58,14 @@ def lambda_handler(event, context):
                 'message': 'Missing required field: user_id',
             },
         )
+    if not body.get('user_notes'):
+        return _cors_response(
+            400,
+            {
+                'success': False,
+                'message': 'Missing required field: user_notes',
+            },
+        )
 
     upload_id = str(uuid.uuid4())[:12]
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
@@ -66,6 +75,7 @@ def lambda_handler(event, context):
     error_code = body.get('error_code', 'MANUAL')
     platform = body.get('platform', 'Unknown')
     user_id = body.get('user_id', 'unknown')
+    user_notes = body.get('user_notes', '')
 
     uploaded_files = []
 
@@ -111,6 +121,7 @@ def lambda_handler(event, context):
         'error_code': error_code,
         'platform': platform,
         'user_id': user_id,
+        'user_notes': user_notes,
         'files': uploaded_files,
     }
     s3.put_object(
@@ -131,6 +142,7 @@ def lambda_handler(event, context):
             f'Error Code: {error_code}\n'
             f'Platform: {platform}\n'
             f'User ID: {user_id}\n\n'
+            f'User Notes:\n{user_notes}\n\n'
             f'Files uploaded:\n{file_list}\n\n'
             f'S3 Bucket: {BUCKET_NAME}\n'
             f'S3 Prefix: {prefix}/\n'

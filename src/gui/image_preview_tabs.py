@@ -132,6 +132,14 @@ class ImagePreviewTab(QWidget):
     def _on_preview_error(self, message: str):
         self._progress.setValue(0)
         self._status_label.setText(f'Error: {message}')
+        get_logger().error(
+            'Image preview processing failed',
+            extra={
+                'platform': self._specs.platform_name,
+                'image_path': str(self._image_path),
+                'error': message,
+            },
+        )
         self.preview_done.emit(False)
 
     def get_processed_path(self) -> Path | None:
@@ -148,6 +156,7 @@ class ImagePreviewDialog(QDialog):
         self._image_path = image_path
         self._tabs: dict[str, ImagePreviewTab] = {}
         self._processed_paths: dict[str, Path | None] = {}
+        self._had_errors = False
 
         self.setWindowTitle('Image Resize Preview')
         self.setMinimumSize(550, 600)
@@ -196,6 +205,10 @@ class ImagePreviewDialog(QDialog):
         self._ok_btn.setEnabled(False)
         self._ok_btn.clicked.connect(self.accept)
         btn_layout.addWidget(self._ok_btn)
+        cancel_btn = QPushButton('Cancel')
+        cancel_btn.setMinimumWidth(100)
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(cancel_btn)
         layout.addLayout(btn_layout)
 
         # Load all tabs and enable OK when complete
@@ -213,6 +226,8 @@ class ImagePreviewDialog(QDialog):
 
     def _on_tab_done(self, _success: bool):
         self._completed_tabs += 1
+        if not _success:
+            self._had_errors = True
         if self._completed_tabs >= len(self._tabs):
             self._ok_btn.setEnabled(True)
 
@@ -222,6 +237,10 @@ class ImagePreviewDialog(QDialog):
         for platform, tab in self._tabs.items():
             result[platform] = tab.get_processed_path()
         return result
+
+    @property
+    def had_errors(self) -> bool:
+        return self._had_errors
 
 
 class _ImageProcessWorker(QObject):

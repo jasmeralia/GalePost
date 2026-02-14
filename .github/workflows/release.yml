@@ -143,5 +143,5 @@ jobs:
           body: ${{ steps.release_notes.outputs.body }}
           files: |
             dist/GalePost.exe
-            GalePost-Setup-*.exe
+            dist/GalePost-Setup-*.exe
             dist/GalePost-*-portable.zip
