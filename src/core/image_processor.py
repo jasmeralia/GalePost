@@ -14,6 +14,7 @@ from src.utils.constants import PlatformSpecs
 @dataclass
 class ProcessedImage:
     """Result of processing an image for a platform."""
+
     path: Path
     original_size: tuple[int, int]
     processed_size: tuple[int, int]
@@ -70,7 +71,9 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
         img = img.convert('RGB')
 
     # Determine output format
-    out_format = img.format if img.format and img.format.upper() in specs.supported_formats else 'JPEG'
+    out_format = (
+        img.format if img.format and img.format.upper() in specs.supported_formats else 'JPEG'
+    )
     if out_format.upper() not in specs.supported_formats:
         out_format = 'JPEG'
 
@@ -82,7 +85,7 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
         new_w = int(w * ratio)
         new_h = int(h * ratio)
         img = img.resize((new_w, new_h), Image.LANCZOS)
-        logger.info(f"Resized {w}x{h} -> {new_w}x{new_h} for {specs.platform_name}")
+        logger.info(f'Resized {w}x{h} -> {new_w}x{new_h} for {specs.platform_name}')
 
     # Iterative compression
     max_bytes = int(specs.max_file_size_mb * 1024 * 1024)
@@ -123,7 +126,7 @@ def process_image(image_path: Path, specs: PlatformSpecs) -> ProcessedImage:
 
     meets = buf.tell() <= max_bytes
     if not meets:
-        warning = f"Could not compress below {specs.max_file_size_mb}MB"
+        warning = f'Could not compress below {specs.max_file_size_mb}MB'
 
     # Save to temp file
     ext = '.png' if out_format.upper() == 'PNG' else '.jpg'
@@ -156,5 +159,5 @@ def generate_thumbnail(image_path: Path, max_size: int = 400) -> Path | None:
             img.save(tmp.name, 'PNG')
             return Path(tmp.name)
     except Exception as e:
-        get_logger().warning(f"Thumbnail generation failed: {e}")
+        get_logger().warning(f'Thumbnail generation failed: {e}')
         return None

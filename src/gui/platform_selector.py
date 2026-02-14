@@ -1,6 +1,5 @@
 """Platform selection checkboxes."""
 
-
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QWidget
 
@@ -19,24 +18,24 @@ class PlatformSelector(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        label = QLabel("Post to:")
-        label.setStyleSheet("font-weight: bold; font-size: 13px;")
+        label = QLabel('Post to:')
+        label.setStyleSheet('font-weight: bold; font-size: 13px;')
         layout.addWidget(label)
 
         layout.addSpacing(10)
 
-        self._tw_cb = QCheckBox("Twitter")
+        self._tw_cb = QCheckBox('Twitter')
         self._tw_cb.setChecked(True)
-        self._tw_cb.setStyleSheet("font-size: 13px; color: #1DA1F2;")
+        self._tw_cb.setStyleSheet('font-size: 13px; color: #1DA1F2;')
         self._tw_cb.stateChanged.connect(self._on_changed)
         layout.addWidget(self._tw_cb)
         self._checkboxes['twitter'] = self._tw_cb
 
         layout.addSpacing(20)
 
-        self._bs_cb = QCheckBox("Bluesky")
+        self._bs_cb = QCheckBox('Bluesky')
         self._bs_cb.setChecked(True)
-        self._bs_cb.setStyleSheet("font-size: 13px; color: #0085FF;")
+        self._bs_cb.setStyleSheet('font-size: 13px; color: #0085FF;')
         self._bs_cb.stateChanged.connect(self._on_changed)
         layout.addWidget(self._bs_cb)
         self._checkboxes['bluesky'] = self._bs_cb

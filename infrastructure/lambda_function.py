@@ -40,21 +40,27 @@ def lambda_handler(event, context):
     try:
         body = json.loads(event.get('body', '{}'))
     except (json.JSONDecodeError, TypeError):
-        return _cors_response(400, {
-            'success': False,
-            'message': 'Invalid JSON body',
-        })
+        return _cors_response(
+            400,
+            {
+                'success': False,
+                'message': 'Invalid JSON body',
+            },
+        )
 
     # Validate required fields
     if not body.get('user_id'):
-        return _cors_response(400, {
-            'success': False,
-            'message': 'Missing required field: user_id',
-        })
+        return _cors_response(
+            400,
+            {
+                'success': False,
+                'message': 'Missing required field: user_id',
+            },
+        )
 
     upload_id = str(uuid.uuid4())[:12]
     timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-    prefix = f"{timestamp}_{upload_id}"
+    prefix = f'{timestamp}_{upload_id}'
 
     app_version = body.get('app_version', 'unknown')
     error_code = body.get('error_code', 'MANUAL')
@@ -69,7 +75,7 @@ def lambda_handler(event, context):
         content = log_file.get('content', '')
         try:
             decoded = base64.b64decode(content)
-            key = f"{prefix}/logs/{filename}"
+            key = f'{prefix}/logs/{filename}'
             s3.put_object(
                 Bucket=BUCKET_NAME,
                 Key=key,
@@ -78,7 +84,7 @@ def lambda_handler(event, context):
             )
             uploaded_files.append(key)
         except Exception as e:
-            print(f"Failed to upload log {filename}: {e}")
+            print(f'Failed to upload log {filename}: {e}')
 
     # Save screenshots to S3
     for screenshot in body.get('screenshots', []):
@@ -86,7 +92,7 @@ def lambda_handler(event, context):
         content = screenshot.get('content', '')
         try:
             decoded = base64.b64decode(content)
-            key = f"{prefix}/screenshots/{filename}"
+            key = f'{prefix}/screenshots/{filename}'
             s3.put_object(
                 Bucket=BUCKET_NAME,
                 Key=key,
@@ -95,7 +101,7 @@ def lambda_handler(event, context):
             )
             uploaded_files.append(key)
         except Exception as e:
-            print(f"Failed to upload screenshot {filename}: {e}")
+            print(f'Failed to upload screenshot {filename}: {e}')
 
     # Save metadata
     metadata = {
@@ -109,25 +115,25 @@ def lambda_handler(event, context):
     }
     s3.put_object(
         Bucket=BUCKET_NAME,
-        Key=f"{prefix}/metadata.json",
+        Key=f'{prefix}/metadata.json',
         Body=json.dumps(metadata, indent=2),
         ContentType='application/json',
     )
 
     # Send notification email via SES
     try:
-        file_list = '\n'.join(f"  - {f}" for f in uploaded_files)
+        file_list = '\n'.join(f'  - {f}' for f in uploaded_files)
         email_body = (
-            f"New error report received from GalePost.\n\n"
-            f"Upload ID: {upload_id}\n"
-            f"Timestamp: {timestamp}\n"
-            f"App Version: {app_version}\n"
-            f"Error Code: {error_code}\n"
-            f"Platform: {platform}\n"
-            f"User ID: {user_id}\n\n"
-            f"Files uploaded:\n{file_list}\n\n"
-            f"S3 Bucket: {BUCKET_NAME}\n"
-            f"S3 Prefix: {prefix}/\n"
+            f'New error report received from GalePost.\n\n'
+            f'Upload ID: {upload_id}\n'
+            f'Timestamp: {timestamp}\n'
+            f'App Version: {app_version}\n'
+            f'Error Code: {error_code}\n'
+            f'Platform: {platform}\n'
+            f'User ID: {user_id}\n\n'
+            f'Files uploaded:\n{file_list}\n\n'
+            f'S3 Bucket: {BUCKET_NAME}\n'
+            f'S3 Prefix: {prefix}/\n'
         )
 
         ses.send_email(
@@ -135,7 +141,7 @@ def lambda_handler(event, context):
             Destination={'ToAddresses': [NOTIFY_EMAIL]},
             Message={
                 'Subject': {
-                    'Data': f"[GalePost] Error Report: {error_code} on {platform}",
+                    'Data': f'[GalePost] Error Report: {error_code} on {platform}',
                     'Charset': 'UTF-8',
                 },
                 'Body': {
@@ -148,13 +154,16 @@ def lambda_handler(event, context):
         )
     except Exception as e:
         # Don't fail the request if email fails
-        print(f"SES email failed: {e}")
+        print(f'SES email failed: {e}')
 
-    return _cors_response(200, {
-        'success': True,
-        'upload_id': upload_id,
-        'message': 'Logs uploaded successfully',
-    })
+    return _cors_response(
+        200,
+        {
+            'success': True,
+            'upload_id': upload_id,
+            'message': 'Logs uploaded successfully',
+        },
+    )
 
 
 def _cors_response(status_code: int, body: dict) -> dict:

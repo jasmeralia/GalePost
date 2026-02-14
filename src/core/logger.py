@@ -26,9 +26,7 @@ def setup_logging(debug_mode: bool = False) -> logging.Logger:
 
     file_handler = logging.FileHandler(_log_file_path, encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
-    file_fmt = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    file_fmt = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     file_handler.setFormatter(file_fmt)
     _logger.addHandler(file_handler)
 
@@ -54,8 +52,9 @@ def get_current_log_path() -> Path | None:
     return _log_file_path
 
 
-def log_error(error_code: str, platform: str, details: dict | None = None,
-              exception: Exception | None = None):
+def log_error(
+    error_code: str, platform: str, details: dict | None = None, exception: Exception | None = None
+):
     """Log a structured error entry."""
     logger = get_logger()
 
@@ -73,7 +72,7 @@ def log_error(error_code: str, platform: str, details: dict | None = None,
             'traceback': traceback.format_exc(),
         }
 
-    logger.error(f"Error {error_code} on {platform}\n{json.dumps(error_entry, indent=2)}")
+    logger.error(f'Error {error_code} on {platform}\n{json.dumps(error_entry, indent=2)}')
 
     capture_screenshot(error_code)
 
@@ -103,6 +102,6 @@ def capture_screenshot(error_code: str):
         screenshot_path = logs_dir / 'screenshots' / f'error_{timestamp}.png'
         screenshot.save(str(screenshot_path), 'PNG')
 
-        get_logger().info(f"Screenshot saved: {screenshot_path}")
+        get_logger().info(f'Screenshot saved: {screenshot_path}')
     except Exception as e:
-        get_logger().warning(f"Failed to capture screenshot: {e}")
+        get_logger().warning(f'Failed to capture screenshot: {e}')

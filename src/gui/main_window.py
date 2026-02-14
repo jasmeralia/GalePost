@@ -38,10 +38,10 @@ from src.utils.helpers import get_drafts_dir
 
 class PostWorker(QThread):
     """Background thread for posting to platforms."""
+
     finished = pyqtSignal(list)
 
-    def __init__(self, platforms: dict, text: str,
-                 processed_images: dict[str, Path | None]):
+    def __init__(self, platforms: dict, text: str, processed_images: dict[str, Path | None]):
         super().__init__()
         self._platforms = platforms
         self._text = text
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self._check_first_run()
 
     def _init_ui(self):
-        self.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
+        self.setWindowTitle(f'{APP_NAME} v{APP_VERSION}')
 
         # Menu bar
         self._create_menu_bar()
@@ -110,19 +110,19 @@ class MainWindow(QMainWindow):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        self._test_btn = QPushButton("Test Connections")
+        self._test_btn = QPushButton('Test Connections')
         self._test_btn.clicked.connect(self._test_connections)
         btn_layout.addWidget(self._test_btn)
 
         btn_layout.addSpacing(10)
 
-        self._post_btn = QPushButton("Post Now")
+        self._post_btn = QPushButton('Post Now')
         self._post_btn.setStyleSheet(
-            "QPushButton { background-color: #4CAF50; color: white; "
-            "font-weight: bold; font-size: 14px; padding: 8px 24px; "
-            "border-radius: 4px; }"
-            "QPushButton:hover { background-color: #45a049; }"
-            "QPushButton:disabled { background-color: #ccc; color: #888; }"
+            'QPushButton { background-color: #4CAF50; color: white; '
+            'font-weight: bold; font-size: 14px; padding: 8px 24px; '
+            'border-radius: 4px; }'
+            'QPushButton:hover { background-color: #45a049; }'
+            'QPushButton:disabled { background-color: #ccc; color: #888; }'
         )
         self._post_btn.clicked.connect(self._do_post)
         btn_layout.addWidget(self._post_btn)
@@ -132,35 +132,35 @@ class MainWindow(QMainWindow):
         # Status bar
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
-        self._status_bar.showMessage("Ready")
+        self._status_bar.showMessage('Ready')
 
     def _create_menu_bar(self):
         menu_bar = self.menuBar()
 
         # File menu
-        file_menu = menu_bar.addMenu("File")
-        exit_action = QAction("Exit", self)
+        file_menu = menu_bar.addMenu('File')
+        exit_action = QAction('Exit', self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
         # Settings menu
-        settings_menu = menu_bar.addMenu("Settings")
-        open_settings = QAction("Open Settings...", self)
+        settings_menu = menu_bar.addMenu('Settings')
+        open_settings = QAction('Open Settings...', self)
         open_settings.triggered.connect(self._open_settings)
         settings_menu.addAction(open_settings)
 
         # Help menu
-        help_menu = menu_bar.addMenu("Help")
+        help_menu = menu_bar.addMenu('Help')
 
-        about_action = QAction("About", self)
+        about_action = QAction('About', self)
         about_action.triggered.connect(self._show_about)
         help_menu.addAction(about_action)
 
-        check_update = QAction("Check for Updates", self)
+        check_update = QAction('Check for Updates', self)
         check_update.triggered.connect(self._manual_update_check)
         help_menu.addAction(check_update)
 
-        send_logs = QAction("Send Logs to Jas", self)
+        send_logs = QAction('Send Logs to Jas', self)
         send_logs.triggered.connect(self._send_logs)
         help_menu.addAction(send_logs)
 
@@ -171,8 +171,10 @@ class MainWindow(QMainWindow):
     def _save_geometry(self):
         rect = self.geometry()
         self._config.window_geometry = {
-            'x': rect.x(), 'y': rect.y(),
-            'width': rect.width(), 'height': rect.height(),
+            'x': rect.x(),
+            'y': rect.y(),
+            'width': rect.width(),
+            'height': rect.height(),
         }
 
     def _setup_draft_timer(self):
@@ -182,8 +184,7 @@ class MainWindow(QMainWindow):
             self._draft_timer.start(self._config.draft_interval * 1000)
 
     def _check_first_run(self):
-        if not self._auth_manager.has_twitter_auth() and \
-           not self._auth_manager.has_bluesky_auth():
+        if not self._auth_manager.has_twitter_auth() and not self._auth_manager.has_bluesky_auth():
             QTimer.singleShot(100, self._show_setup_wizard)
 
     def _show_setup_wizard(self):
@@ -203,7 +204,7 @@ class MainWindow(QMainWindow):
         self._config.last_selected_platforms = platforms
 
     def _test_connections(self):
-        self._status_bar.showMessage("Testing connections...")
+        self._status_bar.showMessage('Testing connections...')
         self._test_btn.setEnabled(False)
         QApplication.processEvents()
 
@@ -220,23 +221,23 @@ class MainWindow(QMainWindow):
         msg_parts = []
         for pname, success, error in results:
             if success:
-                msg_parts.append(f"\u2713 {pname}: Connected!")
+                msg_parts.append(f'\u2713 {pname}: Connected!')
             else:
-                msg_parts.append(f"\u274C {pname}: Failed ({error})")
+                msg_parts.append(f'\u274c {pname}: Failed ({error})')
 
-        QMessageBox.information(self, "Connection Test", "\n".join(msg_parts))
+        QMessageBox.information(self, 'Connection Test', '\n'.join(msg_parts))
         self._test_btn.setEnabled(True)
-        self._status_bar.showMessage("Ready")
+        self._status_bar.showMessage('Ready')
 
     def _do_post(self):
         text = self._composer.get_text()
         if not text.strip():
-            QMessageBox.warning(self, "Empty Post", "Please enter some text before posting.")
+            QMessageBox.warning(self, 'Empty Post', 'Please enter some text before posting.')
             return
 
         selected = self._platform_selector.get_selected()
         if not selected:
-            QMessageBox.warning(self, "No Platforms", "Please select at least one platform.")
+            QMessageBox.warning(self, 'No Platforms', 'Please select at least one platform.')
             return
 
         # Check character limits
@@ -246,9 +247,10 @@ class MainWindow(QMainWindow):
                 specs = platform.get_specs()
                 if len(text) > specs.max_text_length:
                     QMessageBox.warning(
-                        self, "Text Too Long",
-                        f"Your post is {len(text)} characters, but "
-                        f"{specs.platform_name} allows {specs.max_text_length}."
+                        self,
+                        'Text Too Long',
+                        f'Your post is {len(text)} characters, but '
+                        f'{specs.platform_name} allows {specs.max_text_length}.',
                     )
                     return
 
@@ -263,9 +265,9 @@ class MainWindow(QMainWindow):
                     error = validate_image(image_path, specs)
                     if error:
                         from src.core.error_handler import get_user_message
+
                         QMessageBox.warning(
-                            self, "Image Error",
-                            f"{specs.platform_name}: {get_user_message(error)}"
+                            self, 'Image Error', f'{specs.platform_name}: {get_user_message(error)}'
                         )
                         return
                     result = process_image(image_path, specs)
@@ -277,7 +279,7 @@ class MainWindow(QMainWindow):
         # Disable UI during posting
         self._post_btn.setEnabled(False)
         self._test_btn.setEnabled(False)
-        self._status_bar.showMessage("Posting...")
+        self._status_bar.showMessage('Posting...')
         QApplication.processEvents()
 
         # Post in background thread
@@ -288,7 +290,7 @@ class MainWindow(QMainWindow):
     def _on_post_finished(self, results: list[PostResult]):
         self._post_btn.setEnabled(True)
         self._test_btn.setEnabled(True)
-        self._status_bar.showMessage("Ready")
+        self._status_bar.showMessage('Ready')
 
         dialog = ResultsDialog(results, self)
         result_code = dialog.exec_()
@@ -308,55 +310,57 @@ class MainWindow(QMainWindow):
 
     def _show_about(self):
         QMessageBox.about(
-            self, f"About {APP_NAME}",
-            f"<b>{APP_NAME}</b> v{APP_VERSION}<br><br>"
-            f"Post to Twitter and Bluesky simultaneously.<br><br>"
-            f"Copyright \u00a9 2026 Morgan Blackthorne<br>"
-            f"Licensed under the MIT License<br><br>"
-            f"<b>Built with:</b><br>"
-            f"PyQt5 \u2013 GUI framework<br>"
-            f"Tweepy \u2013 Twitter API client<br>"
-            f"atproto \u2013 Bluesky AT Protocol SDK<br>"
-            f"Pillow \u2013 Image processing<br>"
-            f"keyring \u2013 Credential storage<br>"
-            f"Requests \u2013 HTTP client<br>"
-            f"Packaging \u2013 Version parsing<br><br>"
-            f"Built for Rin with love."
+            self,
+            f'About {APP_NAME}',
+            f'<b>{APP_NAME}</b> v{APP_VERSION}<br><br>'
+            f'Post to Twitter and Bluesky simultaneously.<br><br>'
+            f'Copyright \u00a9 2026 Morgan Blackthorne<br>'
+            f'Licensed under the MIT License<br><br>'
+            f'<b>Built with:</b><br>'
+            f'PyQt5 \u2013 GUI framework<br>'
+            f'Tweepy \u2013 Twitter API client<br>'
+            f'atproto \u2013 Bluesky AT Protocol SDK<br>'
+            f'Pillow \u2013 Image processing<br>'
+            f'keyring \u2013 Credential storage<br>'
+            f'Requests \u2013 HTTP client<br>'
+            f'Packaging \u2013 Version parsing<br><br>'
+            f'Built for Rin with love.',
         )
 
     def _manual_update_check(self):
-        self._status_bar.showMessage("Checking for updates...")
+        self._status_bar.showMessage('Checking for updates...')
         QApplication.processEvents()
 
         update = check_for_updates()
         if update:
             reply = QMessageBox.question(
-                self, "Update Available",
-                f"Version {update.latest_version} is available.\n"
+                self,
+                'Update Available',
+                f'Version {update.latest_version} is available.\n'
                 f"You're currently using {update.current_version}.\n\n"
-                f"{update.release_name}\n\n"
-                f"Would you like to download it?",
+                f'{update.release_name}\n\n'
+                f'Would you like to download it?',
                 QMessageBox.Yes | QMessageBox.No,
             )
             if reply == QMessageBox.Yes:
                 url = update.download_url or update.browser_url
                 QDesktopServices.openUrl(QUrl(url))
         else:
-            QMessageBox.information(self, "No Updates", "You're running the latest version!")
+            QMessageBox.information(self, 'No Updates', "You're running the latest version!")
 
-        self._status_bar.showMessage("Ready")
+        self._status_bar.showMessage('Ready')
 
     def _send_logs(self):
-        self._status_bar.showMessage("Uploading logs...")
+        self._status_bar.showMessage('Uploading logs...')
         QApplication.processEvents()
 
         success, message = self._log_uploader.upload()
         if success:
-            QMessageBox.information(self, "Logs Sent", message)
+            QMessageBox.information(self, 'Logs Sent', message)
         else:
-            QMessageBox.warning(self, "Upload Failed", message)
+            QMessageBox.warning(self, 'Upload Failed', message)
 
-        self._status_bar.showMessage("Ready")
+        self._status_bar.showMessage('Ready')
 
     def _auto_save_draft(self):
         text = self._composer.get_text()
@@ -403,9 +407,9 @@ class MainWindow(QMainWindow):
             return
 
         reply = QMessageBox.question(
-            self, "Unsaved Draft Found",
-            f"You have an unsaved draft:\n\n\"{text_preview}...\"\n\n"
-            f"Would you like to restore it?",
+            self,
+            'Unsaved Draft Found',
+            f'You have an unsaved draft:\n\n"{text_preview}..."\n\nWould you like to restore it?',
             QMessageBox.Yes | QMessageBox.No,
         )
 
@@ -426,10 +430,11 @@ class MainWindow(QMainWindow):
             update = check_for_updates()
             if update:
                 reply = QMessageBox.question(
-                    self, "Update Available!",
-                    f"Version {update.latest_version} is now available.\n"
+                    self,
+                    'Update Available!',
+                    f'Version {update.latest_version} is now available.\n'
                     f"You're currently using {update.current_version}.\n\n"
-                    f"Would you like to download it?",
+                    f'Would you like to download it?',
                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Ignore,
                 )
                 if reply == QMessageBox.Yes:

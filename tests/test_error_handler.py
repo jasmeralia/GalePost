@@ -12,13 +12,13 @@ from src.utils.constants import ERROR_CODES, USER_FRIENDLY_MESSAGES, PostResult
 class TestErrorCodes:
     def test_all_codes_have_messages(self):
         for code in ERROR_CODES:
-            assert code in USER_FRIENDLY_MESSAGES, \
-                f"Error code {code} missing user-friendly message"
+            assert code in USER_FRIENDLY_MESSAGES, (
+                f'Error code {code} missing user-friendly message'
+            )
 
     def test_all_friendly_messages_have_codes(self):
         for code in USER_FRIENDLY_MESSAGES:
-            assert code in ERROR_CODES, \
-                f"User message for {code} has no matching error code"
+            assert code in ERROR_CODES, f'User message for {code} has no matching error code'
 
     def test_get_error_message_known(self):
         msg = get_error_message('TW-AUTH-INVALID')
@@ -48,7 +48,7 @@ class TestCreateErrorResult:
 
     def test_includes_exception_info(self):
         try:
-            raise ValueError("test error")
+            raise ValueError('test error')
         except ValueError as e:
             result = create_error_result('SYS-UNKNOWN', 'Bluesky', exception=e)
         assert not result.success

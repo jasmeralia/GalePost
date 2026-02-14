@@ -20,11 +20,11 @@ from src.utils.constants import BLUESKY_SPECS, TWITTER_SPECS, PlatformSpecs
 
 def _format_size(size_bytes: int) -> str:
     if size_bytes < 1024:
-        return f"{size_bytes} B"
+        return f'{size_bytes} B'
     elif size_bytes < 1024 * 1024:
-        return f"{size_bytes / 1024:.1f} KB"
+        return f'{size_bytes / 1024:.1f} KB'
     else:
-        return f"{size_bytes / (1024 * 1024):.2f} MB"
+        return f'{size_bytes / (1024 * 1024):.2f} MB'
 
 
 class ImagePreviewTab(QWidget):
@@ -38,7 +38,7 @@ class ImagePreviewTab(QWidget):
         self._result: ProcessedImage | None = None
 
         layout = QVBoxLayout(self)
-        self._status_label = QLabel("Click this tab to generate preview...")
+        self._status_label = QLabel('Click this tab to generate preview...')
         self._status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._status_label)
 
@@ -57,7 +57,7 @@ class ImagePreviewTab(QWidget):
             return
 
         self._loaded = True
-        self._status_label.setText("Processing...")
+        self._status_label.setText('Processing...')
 
         try:
             self._result = process_image(self._image_path, self._specs)
@@ -70,26 +70,26 @@ class ImagePreviewTab(QWidget):
             self._preview_label.setPixmap(pixmap)
 
             # Status
-            orig = f"{result.original_size[0]}x{result.original_size[1]}"
-            proc = f"{result.processed_size[0]}x{result.processed_size[1]}"
+            orig = f'{result.original_size[0]}x{result.original_size[1]}'
+            proc = f'{result.processed_size[0]}x{result.processed_size[1]}'
             orig_size = _format_size(result.original_file_size)
             proc_size = _format_size(result.processed_file_size)
 
             if result.meets_requirements:
                 status = '<span style="color: #4CAF50; font-weight: bold;">\u2713 Meets requirements</span>'
             else:
-                status = f'<span style="color: #F44336; font-weight: bold;">\u26A0 {result.warning}</span>'
+                status = f'<span style="color: #F44336; font-weight: bold;">\u26a0 {result.warning}</span>'
 
             self._details_label.setText(
-                f"<b>Original:</b> {orig} ({orig_size})<br>"
-                f"<b>Will resize to:</b> {proc} ({proc_size})<br>"
-                f"<b>Format:</b> {result.format} (quality {result.quality})<br><br>"
-                f"{status}"
+                f'<b>Original:</b> {orig} ({orig_size})<br>'
+                f'<b>Will resize to:</b> {proc} ({proc_size})<br>'
+                f'<b>Format:</b> {result.format} (quality {result.quality})<br><br>'
+                f'{status}'
             )
-            self._status_label.setText(f"Preview for {self._specs.platform_name}")
+            self._status_label.setText(f'Preview for {self._specs.platform_name}')
 
         except Exception as e:
-            self._status_label.setText(f"Error: {e}")
+            self._status_label.setText(f'Error: {e}')
 
     def get_processed_path(self) -> Path | None:
         if self._result:
@@ -106,15 +106,15 @@ class ImagePreviewDialog(QDialog):
         self._tabs: dict[str, ImagePreviewTab] = {}
         self._processed_paths: dict[str, Path | None] = {}
 
-        self.setWindowTitle("Image Resize Preview")
+        self.setWindowTitle('Image Resize Preview')
         self.setMinimumSize(550, 600)
 
         layout = QVBoxLayout(self)
 
         # Original file info
         orig_label = QLabel(
-            f"<b>Original:</b> {image_path.name}<br>"
-            f"<b>Size:</b> {_format_size(image_path.stat().st_size)}"
+            f'<b>Original:</b> {image_path.name}<br>'
+            f'<b>Size:</b> {_format_size(image_path.stat().st_size)}'
         )
         layout.addWidget(orig_label)
         layout.addSpacing(10)
@@ -139,8 +139,8 @@ class ImagePreviewDialog(QDialog):
 
         # Info label
         info = QLabel(
-            "<i>Images are automatically optimized for each platform. "
-            "Aspect ratios are preserved.</i>"
+            '<i>Images are automatically optimized for each platform. '
+            'Aspect ratios are preserved.</i>'
         )
         info.setWordWrap(True)
         layout.addWidget(info)
@@ -148,7 +148,7 @@ class ImagePreviewDialog(QDialog):
         # OK button
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        ok_btn = QPushButton("OK")
+        ok_btn = QPushButton('OK')
         ok_btn.setMinimumWidth(100)
         ok_btn.clicked.connect(self.accept)
         btn_layout.addWidget(ok_btn)

@@ -1,6 +1,5 @@
 """Error code system with user-friendly messages."""
 
-
 from src.core.logger import log_error
 from src.utils.constants import ERROR_CODES, USER_FRIENDLY_MESSAGES, PostResult
 
@@ -13,14 +12,13 @@ def get_error_message(error_code: str) -> str:
 def get_user_message(error_code: str) -> str:
     """Return a user-friendly message for an error code."""
     return USER_FRIENDLY_MESSAGES.get(
-        error_code,
-        "Something went wrong. Please send your logs to Jas for help."
+        error_code, 'Something went wrong. Please send your logs to Jas for help.'
     )
 
 
-def create_error_result(error_code: str, platform: str,
-                        exception: Exception | None = None,
-                        details: dict | None = None) -> PostResult:
+def create_error_result(
+    error_code: str, platform: str, exception: Exception | None = None, details: dict | None = None
+) -> PostResult:
     """Create a PostResult for a failed operation, logging the error."""
     log_error(error_code, platform, details=details, exception=exception)
 
@@ -39,22 +37,22 @@ def format_error_details(result: PostResult) -> str:
     from src.utils.constants import APP_VERSION
 
     lines = [
-        f"Platform: {result.platform}",
-        f"Error Code: {result.error_code}",
-        f"Timestamp: {result.timestamp}",
-        f"Message: {result.error_message}",
-        "",
+        f'Platform: {result.platform}',
+        f'Error Code: {result.error_code}',
+        f'Timestamp: {result.timestamp}',
+        f'Message: {result.error_message}',
+        '',
     ]
 
     if result.raw_response:
-        lines.append("Request Details:")
+        lines.append('Request Details:')
         for k, v in result.raw_response.items():
-            lines.append(f"  {k}: {v}")
-        lines.append("")
+            lines.append(f'  {k}: {v}')
+        lines.append('')
 
-    lines.append(f"Application: GalePost v{APP_VERSION}")
+    lines.append(f'Application: GalePost v{APP_VERSION}')
     log_path = get_current_log_path()
     if log_path:
-        lines.append(f"Log File: {log_path.name}")
+        lines.append(f'Log File: {log_path.name}')
 
-    return "\n".join(lines)
+    return '\n'.join(lines)

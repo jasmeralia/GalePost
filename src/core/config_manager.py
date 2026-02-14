@@ -7,21 +7,21 @@ from src.utils.constants import APP_VERSION, LOG_UPLOAD_ENDPOINT
 from src.utils.helpers import get_app_data_dir
 
 DEFAULT_CONFIG = {
-    "version": APP_VERSION,
-    "last_selected_platforms": ["twitter", "bluesky"],
-    "debug_mode": False,
-    "auto_check_updates": True,
-    "log_upload_endpoint": LOG_UPLOAD_ENDPOINT,
-    "log_upload_enabled": True,
-    "window_geometry": {
-        "width": 900,
-        "height": 700,
-        "x": 100,
-        "y": 100,
+    'version': APP_VERSION,
+    'last_selected_platforms': ['twitter', 'bluesky'],
+    'debug_mode': False,
+    'auto_check_updates': True,
+    'log_upload_endpoint': LOG_UPLOAD_ENDPOINT,
+    'log_upload_enabled': True,
+    'window_geometry': {
+        'width': 900,
+        'height': 700,
+        'x': 100,
+        'y': 100,
     },
-    "last_image_directory": "",
-    "auto_save_draft": True,
-    "draft_auto_save_interval_seconds": 30,
+    'last_image_directory': '',
+    'auto_save_draft': True,
+    'draft_auto_save_interval_seconds': 30,
 }
 
 

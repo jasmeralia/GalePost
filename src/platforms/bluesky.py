@@ -24,19 +24,23 @@ def detect_urls(text: str) -> list[dict]:
 
     facets = []
     for match in re.finditer(url_pattern, text):
-        byte_start = len(text[:match.start()].encode('utf-8'))
-        byte_end = len(text[:match.end()].encode('utf-8'))
+        byte_start = len(text[: match.start()].encode('utf-8'))
+        byte_end = len(text[: match.end()].encode('utf-8'))
 
-        facets.append({
-            "index": {
-                "byteStart": byte_start,
-                "byteEnd": byte_end,
-            },
-            "features": [{
-                "$type": "app.bsky.richtext.facet#link",
-                "uri": match.group(0),
-            }],
-        })
+        facets.append(
+            {
+                'index': {
+                    'byteStart': byte_start,
+                    'byteEnd': byte_end,
+                },
+                'features': [
+                    {
+                        '$type': 'app.bsky.richtext.facet#link',
+                        'uri': match.group(0),
+                    }
+                ],
+            }
+        )
 
     return facets
 
@@ -49,7 +53,7 @@ class BlueskyPlatform(BasePlatform):
         self._client: BskyClient | None = None
 
     def get_platform_name(self) -> str:
-        return "Bluesky"
+        return 'Bluesky'
 
     def get_specs(self) -> PlatformSpecs:
         return BLUESKY_SPECS
@@ -63,11 +67,11 @@ class BlueskyPlatform(BasePlatform):
             service = creds.get('service', 'https://bsky.social')
             self._client = BskyClient(base_url=service)
             self._client.login(creds['identifier'], creds['app_password'])
-            get_logger().info(f"Bluesky authenticated as {creds['identifier']}")
+            get_logger().info(f'Bluesky authenticated as {creds["identifier"]}')
             return True, None
         except Exception as e:
             error_str = str(e).lower()
-            get_logger().error(f"Bluesky auth failed: {e}")
+            get_logger().error(f'Bluesky auth failed: {e}')
             if 'invalid' in error_str or 'authentication' in error_str:
                 return False, 'BS-AUTH-INVALID'
             if 'expired' in error_str:
@@ -81,10 +85,10 @@ class BlueskyPlatform(BasePlatform):
 
         try:
             profile = self._client.get_profile(self._client.me.did)
-            get_logger().info(f"Bluesky connected as @{profile.handle}")
+            get_logger().info(f'Bluesky connected as @{profile.handle}')
             return True, None
         except Exception as e:
-            get_logger().error(f"Bluesky connection test failed: {e}")
+            get_logger().error(f'Bluesky connection test failed: {e}')
             return False, 'BS-AUTH-INVALID'
 
     def post(self, text: str, image_path: Path | None = None) -> PostResult:
@@ -102,43 +106,48 @@ class BlueskyPlatform(BasePlatform):
                 try:
                     img_data = image_path.read_bytes()
                     upload = self._client.upload_blob(img_data)
-                    images = [{
-                        "alt": "",
-                        "image": upload.blob,
-                    }]
+                    images = [
+                        {
+                            'alt': '',
+                            'image': upload.blob,
+                        }
+                    ]
                     embed = {
-                        "$type": "app.bsky.embed.images",
-                        "images": images,
+                        '$type': 'app.bsky.embed.images',
+                        'images': images,
                     }
                 except Exception as e:
-                    return create_error_result('IMG-UPLOAD-FAILED', 'Bluesky',
-                                               exception=e,
-                                               details={'image_path': str(image_path)})
+                    return create_error_result(
+                        'IMG-UPLOAD-FAILED',
+                        'Bluesky',
+                        exception=e,
+                        details={'image_path': str(image_path)},
+                    )
 
             record = {
-                "$type": "app.bsky.feed.post",
-                "text": text,
-                "createdAt": self._client._get_time(),
+                '$type': 'app.bsky.feed.post',
+                'text': text,
+                'createdAt': self._client._get_time(),
             }
             if facets:
-                record["facets"] = facets
+                record['facets'] = facets
             if embed:
-                record["embed"] = embed
+                record['embed'] = embed
 
             response = self._client.com.atproto.repo.create_record(
                 data={
-                    "repo": self._client.me.did,
-                    "collection": "app.bsky.feed.post",
-                    "record": record,
+                    'repo': self._client.me.did,
+                    'collection': 'app.bsky.feed.post',
+                    'record': record,
                 }
             )
 
             # Build post URL
             rkey = response.uri.split('/')[-1]
             handle = self._client.me.handle
-            post_url = f"https://bsky.app/profile/{handle}/post/{rkey}"
+            post_url = f'https://bsky.app/profile/{handle}/post/{rkey}'
 
-            get_logger().info(f"Bluesky post success: {post_url}")
+            get_logger().info(f'Bluesky post success: {post_url}')
             return PostResult(
                 success=True,
                 platform='Bluesky',

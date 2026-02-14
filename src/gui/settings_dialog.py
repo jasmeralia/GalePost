@@ -26,7 +26,7 @@ class SettingsDialog(QDialog):
         self._config = config
         self._auth_manager = auth_manager
 
-        self.setWindowTitle("Settings")
+        self.setWindowTitle('Settings')
         self.setMinimumSize(500, 450)
 
         layout = QVBoxLayout(self)
@@ -35,15 +35,15 @@ class SettingsDialog(QDialog):
 
         # General tab
         general_tab = self._create_general_tab()
-        tabs.addTab(general_tab, "General")
+        tabs.addTab(general_tab, 'General')
 
         # Accounts tab
         accounts_tab = self._create_accounts_tab()
-        tabs.addTab(accounts_tab, "Accounts")
+        tabs.addTab(accounts_tab, 'Accounts')
 
         # Advanced tab
         advanced_tab = self._create_advanced_tab()
-        tabs.addTab(advanced_tab, "Advanced")
+        tabs.addTab(advanced_tab, 'Advanced')
 
         layout.addWidget(tabs)
 
@@ -51,11 +51,11 @@ class SettingsDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
 
-        save_btn = QPushButton("Save")
+        save_btn = QPushButton('Save')
         save_btn.clicked.connect(self._save_and_close)
         btn_layout.addWidget(save_btn)
 
-        cancel_btn = QPushButton("Cancel")
+        cancel_btn = QPushButton('Cancel')
         cancel_btn.clicked.connect(self.reject)
         btn_layout.addWidget(cancel_btn)
 
@@ -66,17 +66,17 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(widget)
 
         # Updates
-        updates_group = QGroupBox("Updates")
+        updates_group = QGroupBox('Updates')
         updates_layout = QVBoxLayout(updates_group)
-        self._auto_update_cb = QCheckBox("Automatically check for updates on startup")
+        self._auto_update_cb = QCheckBox('Automatically check for updates on startup')
         self._auto_update_cb.setChecked(self._config.auto_check_updates)
         updates_layout.addWidget(self._auto_update_cb)
         layout.addWidget(updates_group)
 
         # Drafts
-        drafts_group = QGroupBox("Drafts")
+        drafts_group = QGroupBox('Drafts')
         drafts_layout = QVBoxLayout(drafts_group)
-        self._auto_save_cb = QCheckBox("Auto-save drafts")
+        self._auto_save_cb = QCheckBox('Auto-save drafts')
         self._auto_save_cb.setChecked(self._config.auto_save_draft)
         drafts_layout.addWidget(self._auto_save_cb)
         layout.addWidget(drafts_group)
@@ -89,39 +89,41 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(widget)
 
         # Twitter
-        tw_group = QGroupBox("Twitter")
+        tw_group = QGroupBox('Twitter')
         tw_layout = QFormLayout(tw_group)
 
         tw_creds = self._auth_manager.get_twitter_auth()
         self._tw_api_key = QLineEdit(tw_creds.get('api_key', '') if tw_creds else '')
         self._tw_api_key.setEchoMode(QLineEdit.Password)
-        tw_layout.addRow("API Key:", self._tw_api_key)
+        tw_layout.addRow('API Key:', self._tw_api_key)
 
         self._tw_api_secret = QLineEdit(tw_creds.get('api_secret', '') if tw_creds else '')
         self._tw_api_secret.setEchoMode(QLineEdit.Password)
-        tw_layout.addRow("API Secret:", self._tw_api_secret)
+        tw_layout.addRow('API Secret:', self._tw_api_secret)
 
         self._tw_access_token = QLineEdit(tw_creds.get('access_token', '') if tw_creds else '')
         self._tw_access_token.setEchoMode(QLineEdit.Password)
-        tw_layout.addRow("Access Token:", self._tw_access_token)
+        tw_layout.addRow('Access Token:', self._tw_access_token)
 
-        self._tw_access_secret = QLineEdit(tw_creds.get('access_token_secret', '') if tw_creds else '')
+        self._tw_access_secret = QLineEdit(
+            tw_creds.get('access_token_secret', '') if tw_creds else ''
+        )
         self._tw_access_secret.setEchoMode(QLineEdit.Password)
-        tw_layout.addRow("Access Token Secret:", self._tw_access_secret)
+        tw_layout.addRow('Access Token Secret:', self._tw_access_secret)
 
         layout.addWidget(tw_group)
 
         # Bluesky
-        bs_group = QGroupBox("Bluesky")
+        bs_group = QGroupBox('Bluesky')
         bs_layout = QFormLayout(bs_group)
 
         bs_creds = self._auth_manager.get_bluesky_auth()
         self._bs_identifier = QLineEdit(bs_creds.get('identifier', '') if bs_creds else '')
-        bs_layout.addRow("Username (handle):", self._bs_identifier)
+        bs_layout.addRow('Username (handle):', self._bs_identifier)
 
         self._bs_app_password = QLineEdit(bs_creds.get('app_password', '') if bs_creds else '')
         self._bs_app_password.setEchoMode(QLineEdit.Password)
-        bs_layout.addRow("App Password:", self._bs_app_password)
+        bs_layout.addRow('App Password:', self._bs_app_password)
 
         layout.addWidget(bs_group)
 
@@ -133,22 +135,22 @@ class SettingsDialog(QDialog):
         layout = QVBoxLayout(widget)
 
         # Debug
-        debug_group = QGroupBox("Debug")
+        debug_group = QGroupBox('Debug')
         debug_layout = QVBoxLayout(debug_group)
-        self._debug_cb = QCheckBox("Enable debug mode (verbose logging)")
+        self._debug_cb = QCheckBox('Enable debug mode (verbose logging)')
         self._debug_cb.setChecked(self._config.debug_mode)
         debug_layout.addWidget(self._debug_cb)
         layout.addWidget(debug_group)
 
         # Log upload
-        log_group = QGroupBox("Log Upload")
+        log_group = QGroupBox('Log Upload')
         log_layout = QVBoxLayout(log_group)
-        self._log_upload_cb = QCheckBox("Enable log upload")
+        self._log_upload_cb = QCheckBox('Enable log upload')
         self._log_upload_cb.setChecked(self._config.log_upload_enabled)
         log_layout.addWidget(self._log_upload_cb)
 
         endpoint_layout = QHBoxLayout()
-        endpoint_layout.addWidget(QLabel("Endpoint:"))
+        endpoint_layout.addWidget(QLabel('Endpoint:'))
         self._endpoint_edit = QLineEdit(self._config.log_upload_endpoint)
         endpoint_layout.addWidget(self._endpoint_edit)
         log_layout.addLayout(endpoint_layout)

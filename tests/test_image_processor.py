@@ -1,6 +1,5 @@
 """Tests for image processing."""
 
-
 import pytest
 from PIL import Image
 

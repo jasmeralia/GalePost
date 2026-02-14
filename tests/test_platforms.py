@@ -1,28 +1,27 @@
 """Tests for platform implementations."""
 
-
 from src.platforms.bluesky import detect_urls
 from src.utils.constants import BLUESKY_SPECS, TWITTER_SPECS
 
 
 class TestDetectUrls:
     def test_no_urls(self):
-        assert detect_urls("Just a normal post") == []
+        assert detect_urls('Just a normal post') == []
 
     def test_single_url(self):
-        facets = detect_urls("Check out https://example.com today")
+        facets = detect_urls('Check out https://example.com today')
         assert len(facets) == 1
         assert facets[0]['features'][0]['uri'] == 'https://example.com'
 
     def test_multiple_urls(self):
-        text = "Visit https://one.com and http://two.com"
+        text = 'Visit https://one.com and http://two.com'
         facets = detect_urls(text)
         assert len(facets) == 2
 
     def test_byte_offsets_ascii(self):
-        text = "Go to https://example.com now"
+        text = 'Go to https://example.com now'
         facets = detect_urls(text)
-        url = "https://example.com"
+        url = 'https://example.com'
         start = text.index(url)
         end = start + len(url)
         assert facets[0]['index']['byteStart'] == start
@@ -30,15 +29,15 @@ class TestDetectUrls:
 
     def test_byte_offsets_unicode(self):
         # Emoji before URL shifts byte offset
-        text = "\U0001f525 https://example.com"
+        text = '\U0001f525 https://example.com'
         facets = detect_urls(text)
         # Fire emoji is 4 bytes in UTF-8, plus space = 5 bytes
         assert facets[0]['index']['byteStart'] == 5
-        url = "https://example.com"
+        url = 'https://example.com'
         assert facets[0]['index']['byteEnd'] == 5 + len(url.encode('utf-8'))
 
     def test_facet_structure(self):
-        facets = detect_urls("https://example.com")
+        facets = detect_urls('https://example.com')
         f = facets[0]
         assert 'index' in f
         assert 'byteStart' in f['index']

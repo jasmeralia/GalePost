@@ -26,8 +26,7 @@ class AuthManager:
             candidate = Path(sys.executable).parent
         else:
             candidate = Path(__file__).resolve().parent.parent.parent
-        if (candidate / 'twitter_auth.json').exists() or \
-           (candidate / 'bluesky_auth.json').exists():
+        if (candidate / 'twitter_auth.json').exists() or (candidate / 'bluesky_auth.json').exists():
             return candidate
         return None
 
@@ -40,7 +39,7 @@ class AuthManager:
                     with open(path) as f:
                         return json.load(f)
                 except (OSError, json.JSONDecodeError) as e:
-                    get_logger().warning(f"Failed to load {path}: {e}")
+                    get_logger().warning(f'Failed to load {path}: {e}')
         return None
 
     def _save_json(self, filename: str, data: dict[str, Any]):
@@ -53,19 +52,24 @@ class AuthManager:
     def get_twitter_auth(self) -> dict[str, str] | None:
         """Return Twitter OAuth credentials or None."""
         data = self._load_json('twitter_auth.json')
-        if data and all(k in data for k in
-                        ('api_key', 'api_secret', 'access_token', 'access_token_secret')):
+        if data and all(
+            k in data for k in ('api_key', 'api_secret', 'access_token', 'access_token_secret')
+        ):
             return data
         return None
 
-    def save_twitter_auth(self, api_key: str, api_secret: str,
-                          access_token: str, access_token_secret: str):
-        self._save_json('twitter_auth.json', {
-            'api_key': api_key,
-            'api_secret': api_secret,
-            'access_token': access_token,
-            'access_token_secret': access_token_secret,
-        })
+    def save_twitter_auth(
+        self, api_key: str, api_secret: str, access_token: str, access_token_secret: str
+    ):
+        self._save_json(
+            'twitter_auth.json',
+            {
+                'api_key': api_key,
+                'api_secret': api_secret,
+                'access_token': access_token,
+                'access_token_secret': access_token_secret,
+            },
+        )
 
     def get_bluesky_auth(self) -> dict[str, str] | None:
         """Return Bluesky credentials or None."""
@@ -74,13 +78,17 @@ class AuthManager:
             return data
         return None
 
-    def save_bluesky_auth(self, identifier: str, app_password: str,
-                          service: str = 'https://bsky.social'):
-        self._save_json('bluesky_auth.json', {
-            'identifier': identifier,
-            'app_password': app_password,
-            'service': service,
-        })
+    def save_bluesky_auth(
+        self, identifier: str, app_password: str, service: str = 'https://bsky.social'
+    ):
+        self._save_json(
+            'bluesky_auth.json',
+            {
+                'identifier': identifier,
+                'app_password': app_password,
+                'service': service,
+            },
+        )
 
     def has_twitter_auth(self) -> bool:
         return self.get_twitter_auth() is not None

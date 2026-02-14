@@ -20,7 +20,7 @@ class TwitterPlatform(BasePlatform):
         self._api_v1: tweepy.API | None = None
 
     def get_platform_name(self) -> str:
-        return "Twitter"
+        return 'Twitter'
 
     def get_specs(self) -> PlatformSpecs:
         return TWITTER_SPECS
@@ -47,7 +47,7 @@ class TwitterPlatform(BasePlatform):
             )
             return True, None
         except Exception as e:
-            get_logger().error(f"Twitter auth failed: {e}")
+            get_logger().error(f'Twitter auth failed: {e}')
             return False, 'TW-AUTH-INVALID'
 
     def test_connection(self) -> tuple[bool, str | None]:
@@ -58,7 +58,7 @@ class TwitterPlatform(BasePlatform):
         try:
             me = self._client.get_me()
             if me and me.data:
-                get_logger().info(f"Twitter connected as @{me.data.username}")
+                get_logger().info(f'Twitter connected as @{me.data.username}')
                 return True, None
             return False, 'TW-AUTH-INVALID'
         except tweepy.Unauthorized:
@@ -66,7 +66,7 @@ class TwitterPlatform(BasePlatform):
         except tweepy.TooManyRequests:
             return False, 'TW-RATE-LIMIT'
         except Exception as e:
-            get_logger().error(f"Twitter connection test failed: {e}")
+            get_logger().error(f'Twitter connection test failed: {e}')
             return False, 'TW-AUTH-INVALID'
 
     def post(self, text: str, image_path: Path | None = None) -> PostResult:
@@ -83,9 +83,12 @@ class TwitterPlatform(BasePlatform):
             except tweepy.TooManyRequests:
                 return create_error_result('TW-RATE-LIMIT', 'Twitter')
             except Exception as e:
-                return create_error_result('IMG-UPLOAD-FAILED', 'Twitter',
-                                           exception=e,
-                                           details={'image_path': str(image_path)})
+                return create_error_result(
+                    'IMG-UPLOAD-FAILED',
+                    'Twitter',
+                    exception=e,
+                    details={'image_path': str(image_path)},
+                )
 
         try:
             media_ids = [media_id] if media_id else None
@@ -96,9 +99,9 @@ class TwitterPlatform(BasePlatform):
                 # Get username for URL
                 me = self._client.get_me()
                 username = me.data.username if me and me.data else 'i'
-                post_url = f"https://twitter.com/{username}/status/{tweet_id}"
+                post_url = f'https://twitter.com/{username}/status/{tweet_id}'
 
-                get_logger().info(f"Twitter post success: {post_url}")
+                get_logger().info(f'Twitter post success: {post_url}')
                 return PostResult(
                     success=True,
                     platform='Twitter',
