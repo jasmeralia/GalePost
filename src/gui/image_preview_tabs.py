@@ -32,6 +32,8 @@ def _format_size(size_bytes: int) -> str:
 class ImagePreviewTab(QWidget):
     """Single platform preview tab with lazy loading."""
 
+    preview_done = pyqtSignal(bool)
+
     def __init__(self, image_path: Path, specs: PlatformSpecs, parent=None):
         super().__init__(parent)
         self._image_path = image_path
@@ -125,10 +127,12 @@ class ImagePreviewTab(QWidget):
             f'{status}'
         )
         self._status_label.setText(f'Preview for {self._specs.platform_name}')
+        self.preview_done.emit(True)
 
     def _on_preview_error(self, message: str):
         self._progress.setValue(0)
         self._status_label.setText(f'Error: {message}')
+        self.preview_done.emit(False)
 
     def get_processed_path(self) -> Path | None:
         if self._result:
@@ -187,20 +191,30 @@ class ImagePreviewDialog(QDialog):
         # OK button
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
-        ok_btn = QPushButton('OK')
-        ok_btn.setMinimumWidth(100)
-        ok_btn.clicked.connect(self.accept)
-        btn_layout.addWidget(ok_btn)
+        self._ok_btn = QPushButton('OK')
+        self._ok_btn.setMinimumWidth(100)
+        self._ok_btn.setEnabled(False)
+        self._ok_btn.clicked.connect(self.accept)
+        btn_layout.addWidget(self._ok_btn)
         layout.addLayout(btn_layout)
 
-        # Load first tab
-        if self._tab_widget.count() > 0:
-            self._on_tab_changed(0)
+        # Load all tabs and enable OK when complete
+        self._completed_tabs = 0
+        for tab in self._tabs.values():
+            tab.preview_done.connect(self._on_tab_done)
+            tab.load_preview()
+        if not self._tabs:
+            self._ok_btn.setEnabled(True)
 
     def _on_tab_changed(self, index: int):
         widget = self._tab_widget.widget(index)
         if isinstance(widget, ImagePreviewTab):
             widget.load_preview()
+
+    def _on_tab_done(self, _success: bool):
+        self._completed_tabs += 1
+        if self._completed_tabs >= len(self._tabs):
+            self._ok_btn.setEnabled(True)
 
     def get_processed_paths(self) -> dict[str, Path | None]:
         """Return {platform: processed_image_path} for all loaded tabs."""

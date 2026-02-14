@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.13] - 2026-02-14
+
+### Changed
+- Image preview OK button now waits for all selected platform resizes to finish
+
 ## [0.2.12] - 2026-02-14
 
 ### Fixed
