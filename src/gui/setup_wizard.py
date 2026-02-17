@@ -22,7 +22,7 @@ class WelcomePage(QWizardPage):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle('Welcome to GalePost!')
+        self.setTitle('Welcome to GaleFling!')
 
         layout = QVBoxLayout(self)
         layout.addSpacing(20)
@@ -204,7 +204,7 @@ class SetupWizard(QWizard):
 
     def __init__(self, auth_manager: AuthManager, parent=None):
         super().__init__(parent)
-        self.setWindowTitle('GalePost - Setup')
+        self.setWindowTitle('GaleFling - Setup')
         self.setMinimumSize(550, 450)
 
         self.addPage(WelcomePage())

@@ -1,4 +1,4 @@
-"""AWS Lambda function for receiving log uploads from GalePost.
+"""AWS Lambda function for receiving log uploads from GaleFling.
 
 Receives log bundles via API Gateway and sends
 a notification email via SES.
@@ -87,7 +87,7 @@ def lambda_handler(event, context):
         )
         skipped_list = '\n'.join(f'  - {item}' for item in skipped)
         email_body = (
-            f'New error report received from GalePost.\n\n'
+            f'New error report received from GaleFling.\n\n'
             f'Upload ID: {upload_id}\n'
             f'Timestamp: {timestamp}\n'
             f'App Version: {app_version}\n'
@@ -103,7 +103,7 @@ def lambda_handler(event, context):
 
         if attachments:
             raw_message = _build_raw_email(
-                subject=f'[GalePost] Error Report: {error_code} on {hostname or os_display}',
+                subject=f'[GaleFling] Error Report: {error_code} on {hostname or os_display}',
                 body=email_body,
                 sender=SENDER_EMAIL,
                 recipient=NOTIFY_EMAIL,
@@ -120,7 +120,7 @@ def lambda_handler(event, context):
                 Destination={'ToAddresses': [NOTIFY_EMAIL]},
                 Message={
                     'Subject': {
-                        'Data': f'[GalePost] Error Report: {error_code} on {hostname or os_display}',
+                        'Data': f'[GaleFling] Error Report: {error_code} on {hostname or os_display}',
                         'Charset': 'UTF-8',
                     },
                     'Body': {

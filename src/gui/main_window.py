@@ -633,7 +633,7 @@ class MainWindow(QMainWindow):
 
         downloads_dir = Path.home() / 'Downloads'
         downloads_dir.mkdir(parents=True, exist_ok=True)
-        filename = f'GalePost-Setup-v{update.latest_version}.exe'
+        filename = f'GaleFling-Setup-v{update.latest_version}.exe'
         target_path = downloads_dir / filename
 
         progress = QProgressDialog('Downloading update...', None, 0, 100, self)

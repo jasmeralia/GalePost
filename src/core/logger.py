@@ -22,7 +22,7 @@ def setup_logging(debug_mode: bool = False) -> logging.Logger:
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     _log_file_path = logs_dir / f'app_{timestamp}.log'
 
-    _logger = logging.getLogger('GalePost')
+    _logger = logging.getLogger('GaleFling')
     _logger.setLevel(logging.DEBUG if debug_mode else logging.INFO)
     _logger.handlers.clear()
 

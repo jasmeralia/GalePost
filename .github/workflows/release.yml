@@ -67,15 +67,15 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          Compress-Archive -Path dist/GalePost.exe -DestinationPath "dist/GalePost-${version}-portable.zip"
+          Compress-Archive -Path dist/GaleFling.exe -DestinationPath "dist/GaleFling-${version}-portable.zip"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: |
-            build/GalePost-Setup-*.exe
-            dist/GalePost-*-portable.zip
+            build/GaleFling-Setup-*.exe
+            dist/GaleFling-*-portable.zip
 
   release:
     name: Create Draft Release
@@ -168,8 +168,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          name: "${{ github.ref_name }} - GalePost"
+          name: "${{ github.ref_name }} - GaleFling"
           body: ${{ steps.release_notes.outputs.body }}
           files: |
-            build/GalePost-Setup-*.exe
-            dist/GalePost-*-portable.zip
+            build/GaleFling-Setup-*.exe
+            dist/GaleFling-*-portable.zip

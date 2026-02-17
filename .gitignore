@@ -43,3 +43,7 @@ build/tmp/
 # Environment
 .env
 .env.local
+
+# Python caches
+.pytest_cache/
+.ruff_cache/

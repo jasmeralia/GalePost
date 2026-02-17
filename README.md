@@ -1,8 +1,8 @@
-# GalePost
+# GaleFling
 
 Windows desktop application for posting to multiple social media platforms simultaneously. Built with PyQt5 for a non-technical end user, with robust error handling and remote troubleshooting via log uploads.
 
-**Current Version:** 0.2.48 (Phase 0)
+**Current Version:** 0.2.49 (Phase 0)
 
 ## Supported Platforms
 
@@ -68,7 +68,7 @@ make clean       # Remove build artifacts
 ## Project Structure
 
 ```
-galepost/
+galefling/
 ├── src/
 │   ├── main.py                      # Application entry point
 │   ├── gui/
@@ -138,8 +138,8 @@ See [infrastructure/](infrastructure/) for the CFT and deployment script.
 3. Update this README if features changed
 4. Commit, tag, and push:
    ```bash
-   git tag v0.2.48
-   git push origin v0.2.48
+   git tag v0.2.49
+   git push origin v0.2.49
    ```
 5. The GitHub Action builds a Windows executable and creates a **draft release** with commit history
 6. Review the draft on GitHub and publish when ready

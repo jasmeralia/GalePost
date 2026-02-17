@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: >
-  GalePost - Log Upload Backend.
+  GaleFling - Log Upload Backend.
   Deploys Lambda, API Gateway (HTTP API) with custom domain
   galepost.jasmer.tools, and SES email notifications.
 
@@ -32,7 +32,7 @@ Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub GalePost-LogUpload-Lambda-${AWS::StackName}
+      RoleName: !Sub GaleFling-LogUpload-Lambda-${AWS::StackName}
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -57,7 +57,7 @@ Resources:
   LogUploadFunction:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Sub GalePost-LogUpload-${AWS::StackName}
+      FunctionName: !Sub GaleFling-LogUpload-${AWS::StackName}
       Runtime: python3.11
       Handler: lambda_function.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
@@ -81,7 +81,7 @@ Resources:
   HttpApi:
     Type: AWS::ApiGatewayV2::Api
     Properties:
-      Name: !Sub GalePost-LogUpload-API-${AWS::StackName}
+      Name: !Sub GaleFling-LogUpload-API-${AWS::StackName}
       ProtocolType: HTTP
       CorsConfiguration:
         AllowOrigins:

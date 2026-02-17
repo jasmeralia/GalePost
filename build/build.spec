@@ -45,7 +45,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='GalePost',
+    name='GaleFling',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

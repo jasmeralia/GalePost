@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy the GalePost log upload backend.
+# Deploy the GaleFling log upload backend.
 #
 # Prerequisites:
 #   1. AWS CLI configured with credentials
@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-STACK_NAME="galepost-log-upload"
+STACK_NAME="galefling-log-upload"
 TEMPLATE="template.yaml"
 
 if [ $# -lt 1 ]; then
@@ -64,7 +64,7 @@ echo ""
     --parameter-overrides \
         CertificateArn="${CERTIFICATE_ARN}" \
     --tags \
-        Project=GalePost \
+        Project=GaleFling \
         Environment=Production
 
 echo ""

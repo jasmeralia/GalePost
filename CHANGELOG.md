@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.49] - 2026-02-17
+- Rebrand GalePost to GaleFling across the app, build outputs, and docs while keeping the log endpoint on `galepost.jasmer.tools`.
+
 ## [0.2.48] - 2026-02-14
 - Verify auto-update installer size against the release asset before launching.
 
@@ -61,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.33] - 2026-02-14
 
 ### Fixed
-- Installer now closes any running GalePost instance before copying files
+- Installer now closes any running GaleFling instance before copying files
 - Update download now exits the app after saving drafts
 
 ## [0.2.32] - 2026-02-14
@@ -143,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.20] - 2026-02-14
 
 ### Changed
-- Release assets now omit the standalone `GalePost.exe` (installer + portable zip only)
+- Release assets now omit the standalone `GaleFling.exe` (installer + portable zip only)
 
 ## [0.2.19] - 2026-02-14
 
@@ -274,17 +277,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Applied ruff formatting across entire codebase
-- Updated git remote to new repository URL (`jasmeralia/GalePost`)
+- Updated git remote to new repository URL (`jasmeralia/GaleFling`)
 
 ## [0.2.0] - 2026-02-14
 
 ### Changed
-- Rebranded application from "Social Media Poster" to "GalePost"
-- Repository renamed to `jasmeralia/galepost`
+- Rebranded application from "Social Media Poster" to "GaleFling"
+- Repository renamed to `jasmeralia/galefling`
 - Log upload endpoint moved to `galepost.jasmer.tools`
-- All build artifacts now use GalePost naming (exe, installer, portable zip)
-- Windows AppData directory changed to `GalePost`
-- Updated GitHub Actions workflow for GalePost build artifacts
+- All build artifacts now use GaleFling naming (exe, installer, portable zip)
+- Windows AppData directory changed to `GaleFling`
+- Updated GitHub Actions workflow for GaleFling build artifacts
 
 ### Added
 - Help > About dialog with copyright, MIT license, and module credits

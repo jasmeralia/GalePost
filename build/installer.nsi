@@ -1,19 +1,19 @@
-; GalePost NSIS Installer Script
+; GaleFling NSIS Installer Script
 
 !include "MUI2.nsh"
 
-Name "GalePost"
-OutFile "GalePost-Setup-v0.2.48.exe"
-InstallDir "$PROGRAMFILES\GalePost"
-InstallDirRegKey HKLM "Software\GalePost" "InstallDir"
+Name "GaleFling"
+OutFile "GaleFling-Setup-v0.2.49.exe"
+InstallDir "$PROGRAMFILES\GaleFling"
+InstallDirRegKey HKLM "Software\GaleFling" "InstallDir"
 RequestExecutionLevel admin
 
 ; Modern UI settings
 !define MUI_ABORTWARNING
 !define MUI_ICON "..\resources\icon.ico"
 !define MUI_UNICON "..\resources\icon.ico"
-!define MUI_FINISHPAGE_RUN "$INSTDIR\GalePost.exe"
-!define MUI_FINISHPAGE_RUN_TEXT "Launch GalePost"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\GaleFling.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch GaleFling"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -28,50 +28,50 @@ RequestExecutionLevel admin
 
 !insertmacro MUI_LANGUAGE "English"
 
-Section "GalePost (required)" SecMain
+Section "GaleFling (required)" SecMain
   SectionIn RO
-  ExecWait "taskkill /IM GalePost.exe /T"
+  ExecWait "taskkill /IM GaleFling.exe /T"
   CreateDirectory "$INSTDIR"
   SetOutPath "$INSTDIR"
-  File "..\dist\GalePost.exe"
+  File "..\dist\GaleFling.exe"
 
   ; Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   ; Start menu shortcut
-  CreateDirectory "$SMPROGRAMS\GalePost"
-  CreateShortCut "$SMPROGRAMS\GalePost\GalePost.lnk" "$INSTDIR\GalePost.exe"
-  CreateShortCut "$SMPROGRAMS\GalePost\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
+  CreateDirectory "$SMPROGRAMS\GaleFling"
+  CreateShortCut "$SMPROGRAMS\GaleFling\GaleFling.lnk" "$INSTDIR\GaleFling.exe"
+  CreateShortCut "$SMPROGRAMS\GaleFling\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
   ; Registry
-  WriteRegStr HKLM "Software\GalePost" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\GalePost" "Version" "0.2.48"
+  WriteRegStr HKLM "Software\GaleFling" "InstallDir" "$INSTDIR"
+  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.49"
 
   ; Add/Remove Programs entry
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
-    "DisplayName" "GalePost"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
+    "DisplayName" "GaleFling"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
-    "DisplayVersion" "0.2.48"
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost" \
-    "Publisher" "GalePost"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
+    "DisplayVersion" "0.2.49"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
+    "Publisher" "GaleFling"
 SectionEnd
 
 Section /o "Desktop Shortcut" SecDesktop
-  CreateShortCut "$DESKTOP\GalePost.lnk" "$INSTDIR\GalePost.exe"
+  CreateShortCut "$DESKTOP\GaleFling.lnk" "$INSTDIR\GaleFling.exe"
 SectionEnd
 
 Section "Uninstall"
-  Delete "$INSTDIR\GalePost.exe"
+  Delete "$INSTDIR\GaleFling.exe"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
 
-  Delete "$SMPROGRAMS\GalePost\GalePost.lnk"
-  Delete "$SMPROGRAMS\GalePost\Uninstall.lnk"
-  RMDir "$SMPROGRAMS\GalePost"
-  Delete "$DESKTOP\GalePost.lnk"
+  Delete "$SMPROGRAMS\GaleFling\GaleFling.lnk"
+  Delete "$SMPROGRAMS\GaleFling\Uninstall.lnk"
+  RMDir "$SMPROGRAMS\GaleFling"
+  Delete "$DESKTOP\GaleFling.lnk"
 
-  DeleteRegKey HKLM "Software\GalePost"
-  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GalePost"
+  DeleteRegKey HKLM "Software\GaleFling"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling"
 SectionEnd

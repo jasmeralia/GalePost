@@ -50,7 +50,7 @@ def format_error_details(result: PostResult) -> str:
             lines.append(f'  {k}: {v}')
         lines.append('')
 
-    lines.append(f'Application: GalePost v{APP_VERSION}')
+    lines.append(f'Application: GaleFling v{APP_VERSION}')
     log_path = get_current_log_path()
     if log_path:
         lines.append(f'Log File: {log_path.name}')

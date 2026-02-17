@@ -8,7 +8,7 @@ from packaging.version import parse as parse_version
 from src.core.logger import get_logger
 from src.utils.constants import APP_VERSION
 
-GITHUB_REPO = 'jasmeralia/galepost'
+GITHUB_REPO = 'jasmeralia/galefling'
 RELEASES_API = f'https://api.github.com/repos/{GITHUB_REPO}/releases/latest'
 
 

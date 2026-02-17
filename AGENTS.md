@@ -1,4 +1,4 @@
-# GalePost - Phase 0 Context
+# GaleFling - Phase 0 Context
 
 ## Project Overview
 Windows GUI application for posting to multiple social media platforms simultaneously. Built for non-technical users with robust error handling and remote troubleshooting capabilities.
@@ -32,7 +32,7 @@ Version: 0.2.0 (Phase 0)
 ## Project Structure
 
 ```
-galepost/
+galefling/
 ├── src/
 │   ├── main.py                      # Application entry point
 │   ├── gui/
@@ -259,7 +259,7 @@ Each error code maps to conversational explanation:
 
 ### Storage Locations
 - Development: Same directory as executable
-- Production: `%APPDATA%/GalePost/auth/`
+- Production: `%APPDATA%/GaleFling/auth/`
 - Credentials also stored in Windows Credential Manager via `keyring` for security
 - Setup wizard creates these files on first run
 
@@ -402,7 +402,7 @@ logs/
 
 ### Log Entry Format
 ```
-2026-02-13 14:23:45,123 - GalePost - ERROR - Error TW-AUTH-EXPIRED on Twitter
+2026-02-13 14:23:45,123 - GaleFling - ERROR - Error TW-AUTH-EXPIRED on Twitter
 {
     "error_code": "TW-AUTH-EXPIRED",
     "platform": "Twitter",
@@ -540,8 +540,8 @@ Use `packaging.version.parse()`:
     "body": "- Fixed Twitter auth\n- Improved error messages",
     "assets": [
         {
-            "name": "GalePost-Setup-0.2.0.exe",
-            "browser_download_url": "https://github.com/.../GalePost-Setup-0.2.0.exe"
+            "name": "GaleFling-Setup-0.2.0.exe",
+            "browser_download_url": "https://github.com/.../GaleFling-Setup-0.2.0.exe"
         }
     ]
 }
@@ -568,7 +568,7 @@ Prevent data loss if app crashes or Rin closes accidentally
 
 ### Implementation
 - Auto-save draft every 30 seconds (configurable)
-- Save location: `%APPDATA%/GalePost/drafts/current_draft.json`
+- Save location: `%APPDATA%/GaleFling/drafts/current_draft.json`
 - On app restart: prompt "Restore unsaved draft?"
 
 ### Draft File Format
@@ -602,7 +602,7 @@ Prevent data loss if app crashes or Rin closes accidentally
 ### Main Window
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ GalePost v0.2.0                              [─] [□] [×]        │
+│ GaleFling v0.2.0                              [─] [□] [×]        │
 ├────────────────────────────────────────────────────────────────┤
 │ File   Settings   Help                                         │
 ├────────────────────────────────────────────────────────────────┤
@@ -733,7 +733,7 @@ Request Details:
 POST https://bsky.social/xrpc/com.atproto.repo.createRecord
 Response: 401 Unauthorized
 
-Application: GalePost v0.2.0
+Application: GaleFling v0.2.0
 Log File: app_20260213_142345.log
 Screenshot: error_20260213_142401.png
 ```
@@ -743,7 +743,7 @@ Screenshot: error_20260213_142401.png
 **Welcome:**
 ```
 ┌────────────────────────────────────────────────────────────────┐
-│ Welcome to GalePost!                                   [×]    │
+│ Welcome to GaleFling!                                   [×]    │
 ├────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  Let's get you set up to post to Twitter and Bluesky!         │
@@ -868,12 +868,12 @@ make lint-fix
 # Build executable
 pyinstaller build/build.spec
 
-# Output: dist/GalePost.exe
+# Output: dist/GaleFling.exe
 
 # Create installer
 makensis build/installer.nsi
 
-# Output: GalePost-Setup-v0.2.0.exe
+# Output: GaleFling-Setup-v0.2.0.exe
 ```
 
 ---
@@ -953,7 +953,7 @@ makensis build/installer.nsi
 
 ### GitHub Repository
 ```
-jasmeralia/galepost/
+jasmeralia/galefling/
 ├── .github/workflows/release.yml  # Draft release on tag push
 ├── src/                           # Source code
 ├── resources/                     # Icons, configs
@@ -973,8 +973,8 @@ jasmeralia/galepost/
 - Stable: v1.0.0
 
 ### Release Assets
-- `GalePost-Setup-v0.2.0.exe` (installer)
-- `GalePost-0.2.0-portable.zip` (no install needed)
+- `GaleFling-Setup-v0.2.0.exe` (installer)
+- `GaleFling-0.2.0-portable.zip` (no install needed)
 
 ---
 
@@ -983,7 +983,7 @@ jasmeralia/galepost/
 ### Questions to Resolve:
 
 1. **GitHub repo name:**
-   - Repo: `jasmeralia/galepost`
+   - Repo: `jasmeralia/galefling`
 
 2. **Log upload endpoint:**
    - Lambda + API Gateway deployed via CloudFormation
@@ -1134,4 +1134,4 @@ Phase versioning:
 
 ---
 
-End of GalePost Phase 0 Context File
+End of GaleFling Phase 0 Context File

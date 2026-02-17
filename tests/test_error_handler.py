@@ -75,4 +75,4 @@ class TestFormatErrorDetails:
             error_message='Failed',
         )
         text = format_error_details(result)
-        assert 'GalePost' in text
+        assert 'GaleFling' in text

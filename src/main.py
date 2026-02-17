@@ -1,4 +1,4 @@
-"""GalePost - Application entry point."""
+"""GaleFling - Application entry point."""
 
 import os
 import sys

@@ -3,9 +3,9 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 
-APP_NAME = 'GalePost'
-APP_VERSION = '0.2.48'
-APP_ORG = 'GalePost'
+APP_NAME = 'GaleFling'
+APP_VERSION = '0.2.49'
+APP_ORG = 'GaleFling'
 LOG_UPLOAD_ENDPOINT = 'https://galepost.jasmer.tools/logs/upload'
 
 DRAFT_AUTO_SAVE_INTERVAL_SECONDS = 30
