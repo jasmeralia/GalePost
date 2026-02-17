@@ -33,6 +33,33 @@ def _windows_prefers_dark() -> bool:
         return False
 
 
+def _set_windows_dark_title_bar(window: MainWindow) -> None:
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        hwnd = int(window.winId())
+
+        # Attribute values vary by Windows build. Try 20 first, then 19.
+        dwmwa_use_immersive_dark_mode = 20
+        dwmwa_use_immersive_dark_mode_before_20h1 = 19
+        value = wintypes.BOOL(1)
+
+        dwmapi = ctypes.WinDLL('dwmapi', use_last_error=True)
+        for attr in (dwmwa_use_immersive_dark_mode, dwmwa_use_immersive_dark_mode_before_20h1):
+            dwmapi.DwmSetWindowAttribute(
+                wintypes.HWND(hwnd),
+                wintypes.DWORD(attr),
+                ctypes.byref(value),
+                ctypes.sizeof(value),
+            )
+    except Exception:
+        # Best-effort only. If this fails, the title bar stays default.
+        return
+
+
 def _apply_dark_palette(app: QApplication):
     palette = QPalette()
     palette.setColor(QPalette.Window, QColor(53, 53, 53))
@@ -74,6 +101,8 @@ def main():
     # Create and show main window
     window = MainWindow(config, auth_manager)
     window.show()
+    if _windows_prefers_dark():
+        _set_windows_dark_title_bar(window)
 
     # Post-show actions
     window.restore_draft()

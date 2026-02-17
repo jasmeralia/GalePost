@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.50] - 2026-02-17
+- Apply a dark Windows title bar when the OS prefers dark mode.
+
 ## [0.2.49] - 2026-02-17
 - Rebrand GalePost to GaleFling across the app, build outputs, and docs while keeping the log endpoint on `galepost.jasmer.tools`.
 
