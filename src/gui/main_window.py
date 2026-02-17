@@ -219,6 +219,11 @@ class MainWindow(QMainWindow):
         theme_group = QActionGroup(self)
         theme_group.setExclusive(True)
 
+        self._system_theme_action = QAction('System Default', self, checkable=True)
+        self._system_theme_action.triggered.connect(lambda: self._set_theme_mode('system'))
+        theme_group.addAction(self._system_theme_action)
+        view_menu.addAction(self._system_theme_action)
+
         self._light_mode_action = QAction('Light Mode', self, checkable=True)
         self._light_mode_action.triggered.connect(lambda: self._set_theme_mode('light'))
         theme_group.addAction(self._light_mode_action)
@@ -230,7 +235,9 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self._dark_mode_action)
 
         resolved_theme = resolve_theme_mode(self._config.theme_mode)
-        if resolved_theme == 'dark':
+        if self._config.theme_mode == 'system':
+            self._system_theme_action.setChecked(True)
+        elif resolved_theme == 'dark':
             self._dark_mode_action.setChecked(True)
         else:
             self._light_mode_action.setChecked(True)
