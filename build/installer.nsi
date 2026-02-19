@@ -4,7 +4,7 @@
 !include "LogicLib.nsh"
 
 Name "GaleFling"
-OutFile "GaleFling-Setup-v0.2.67.exe"
+OutFile "GaleFling-Setup-v0.2.68.exe"
 InstallDir "$PROGRAMFILES\GaleFling"
 InstallDirRegKey HKLM "Software\GaleFling" "InstallDir"
 RequestExecutionLevel admin
@@ -13,6 +13,9 @@ RequestExecutionLevel admin
 !define MUI_ABORTWARNING
 !define MUI_ICON "..\resources\icon.ico"
 !define MUI_UNICON "..\resources\icon.ico"
+!define MUI_FINISHPAGE_RUN "$WINDIR\explorer.exe"
+!define MUI_FINISHPAGE_RUN_PARAMETERS "$INSTDIR\GaleFling.exe"
+!define MUI_FINISHPAGE_RUN_TEXT "Launch GaleFling"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
@@ -60,7 +63,7 @@ Section "GaleFling (required)" SecMain
 
   ; Registry
   WriteRegStr HKLM "Software\GaleFling" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.67"
+  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.68"
 
   ; Add/Remove Programs entry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
@@ -68,7 +71,7 @@ Section "GaleFling (required)" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
-    "DisplayVersion" "0.2.67"
+    "DisplayVersion" "0.2.68"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "Publisher" "GaleFling"
 SectionEnd

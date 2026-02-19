@@ -7,7 +7,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from src.core.auth_manager import AuthManager
 from src.core.config_manager import ConfigManager
@@ -15,6 +15,23 @@ from src.core.logger import setup_logging
 from src.gui.main_window import MainWindow
 from src.utils.constants import APP_NAME
 from src.utils.theme import apply_theme
+
+
+def _abort_if_elevated():
+    if sys.platform != 'win32':
+        return
+    try:
+        import ctypes
+
+        if ctypes.windll.shell32.IsUserAnAdmin() != 0:
+            QMessageBox.critical(
+                None,
+                'Administrator Mode Not Supported',
+                f'{APP_NAME} cannot run as administrator. Please launch it normally.',
+            )
+            sys.exit(1)
+    except Exception:
+        return
 
 
 def main():
@@ -28,6 +45,7 @@ def main():
     app = QApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     apply_theme(app, None, config.theme_mode)
+    _abort_if_elevated()
 
     # Enable high DPI support
     app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
