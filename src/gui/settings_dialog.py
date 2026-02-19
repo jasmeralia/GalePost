@@ -71,7 +71,7 @@ class SettingsDialog(QDialog):
         self._auto_update_cb = QCheckBox('Automatically check for updates on startup')
         self._auto_update_cb.setChecked(self._config.auto_check_updates)
         updates_layout.addWidget(self._auto_update_cb)
-        self._prerelease_update_cb = QCheckBox('Include prerelease versions')
+        self._prerelease_update_cb = QCheckBox('Enable beta updates')
         self._prerelease_update_cb.setChecked(self._config.allow_prerelease_updates)
         updates_layout.addWidget(self._prerelease_update_cb)
         layout.addWidget(updates_group)
