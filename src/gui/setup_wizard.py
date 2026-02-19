@@ -4,11 +4,13 @@ from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import (
     QApplication,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
     QVBoxLayout,
+    QWidget,
     QWizard,
     QWizardPage,
 )
@@ -212,14 +214,20 @@ class SetupWizard(QWizard):
         self.setWindowTitle('GaleFling - Setup')
         self.setMinimumSize(550, 450)
         self._theme_mode = theme_mode
+        self._wizard_palette = None
+        self._window_bg = None
+        self._window_text = None
         app = QApplication.instance()
         if app is not None:
             self.setStyle(app.style())
             self.setPalette(app.palette())
-            window_bg = app.palette().color(QPalette.Window).name()
-            window_text = app.palette().color(QPalette.WindowText).name()
-            base_bg = app.palette().color(QPalette.Base).name()
-            base_text = app.palette().color(QPalette.Text).name()
+            self._wizard_palette = app.palette()
+            window_bg = self._wizard_palette.color(QPalette.Window).name()
+            window_text = self._wizard_palette.color(QPalette.WindowText).name()
+            base_bg = self._wizard_palette.color(QPalette.Base).name()
+            base_text = self._wizard_palette.color(QPalette.Text).name()
+            self._window_bg = window_bg
+            self._window_text = window_text
             self.setStyleSheet(
                 'QWizard QWizardPage#qt_wizard_page '
                 'QLabel[objectName="qt_wizard_h1_label"], '
@@ -270,3 +278,27 @@ class SetupWizard(QWizard):
         self.addPage(BlueskySetupPage(auth_manager))
 
         self.setButtonText(QWizard.FinishButton, 'Finish')
+
+    def showEvent(self, event):  # noqa: N802
+        super().showEvent(event)
+        if not self._wizard_palette or not self._window_bg or not self._window_text:
+            return
+
+        # Force theme on Qt wizard chrome (header + button row) after widgets exist.
+        for name in ('qt_wizard_header', 'qt_wizard_title', 'qt_wizard_button_box'):
+            widget = self.findChild(QFrame, name)
+            if widget is None:
+                widget = self.findChild(QWidget, name)
+            if widget is None:
+                continue
+            widget.setAutoFillBackground(True)
+            widget.setPalette(self._wizard_palette)
+            widget.setStyleSheet(
+                f'background-color: {self._window_bg}; color: {self._window_text};'
+            )
+
+        for label_name in ('qt_wizard_h1_label', 'qt_wizard_h2_label'):
+            label = self.findChild(QLabel, label_name)
+            if label is None:
+                continue
+            label.setStyleSheet(f'color: {self._window_text};')
