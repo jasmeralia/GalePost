@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Skip image processing for disabled platforms and disable posting when nothing is enabled.
 - Update About dialog copyright line to include Winds of Storm.
 
+## [0.2.78] - 2026-02-19
+- Add additional GUI and updater tests for platform gating, updates, and dialogs.
+- Add coverage reporting in CI and badges in the README.
+- Move developer documentation to docs/CONTRIBUTING.md and simplify README for end users.
+
 ## [0.2.77] - 2026-02-19
 - Disable attach/post buttons when no platforms are checked.
 - Add GUI tests for platform enable/disable state and counters.

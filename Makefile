@@ -28,7 +28,7 @@ test: ## Run test suite
 	$(PYTHON) -m pytest tests/ -v
 
 test-cov: ## Run tests with coverage report
-	$(PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html
+	$(PYTHON) -m pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html --cov-report=xml
 
 build: ## Build standalone executable with PyInstaller
 	pyinstaller build/build.spec --distpath dist/ --workpath build/tmp --clean
