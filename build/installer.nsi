@@ -3,7 +3,7 @@
 !include "MUI2.nsh"
 
 Name "GaleFling"
-OutFile "GaleFling-Setup-v0.2.52.exe"
+OutFile "GaleFling-Setup-v0.2.53.exe"
 InstallDir "$PROGRAMFILES\GaleFling"
 InstallDirRegKey HKLM "Software\GaleFling" "InstallDir"
 RequestExecutionLevel admin
@@ -30,7 +30,9 @@ RequestExecutionLevel admin
 
 Section "GaleFling (required)" SecMain
   SectionIn RO
-  ExecWait "taskkill /IM GaleFling.exe /T"
+  ExecWait "taskkill /F /IM GaleFling.exe /T"
+  Sleep 1000
+  ExecWait "taskkill /F /IM GaleFling.exe /T"
   CreateDirectory "$INSTDIR"
   SetOutPath "$INSTDIR"
   File "..\dist\GaleFling.exe"
@@ -45,7 +47,7 @@ Section "GaleFling (required)" SecMain
 
   ; Registry
   WriteRegStr HKLM "Software\GaleFling" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.52"
+  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.53"
 
   ; Add/Remove Programs entry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
@@ -53,7 +55,7 @@ Section "GaleFling (required)" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
-    "DisplayVersion" "0.2.52"
+    "DisplayVersion" "0.2.53"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "Publisher" "GaleFling"
 SectionEnd

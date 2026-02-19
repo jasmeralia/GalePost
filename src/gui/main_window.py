@@ -6,8 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
-from PyQt5.QtCore import Qt, QThread, QTimer, QUrl, pyqtSignal
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtCore import QProcess, Qt, QThread, QTimer, pyqtSignal
 from PyQt5.QtWidgets import (
     QAction,
     QActionGroup,
@@ -700,9 +699,9 @@ class MainWindow(QMainWindow):
             )
             return
 
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(path)))
+        QProcess.startDetached(str(path))
         self._auto_save_draft()
-        self.close()
+        QTimer.singleShot(100, QApplication.instance().quit)
 
     def closeEvent(self, event):  # noqa: N802
         self._save_geometry()
