@@ -23,6 +23,7 @@ class UpdateInfo:
     download_url: str
     download_size: int
     browser_url: str
+    is_prerelease: bool
 
 
 def check_for_updates(include_prerelease: bool = False) -> UpdateInfo | None:
@@ -85,6 +86,7 @@ def check_for_updates(include_prerelease: bool = False) -> UpdateInfo | None:
             download_url=download_url,
             download_size=download_size,
             browser_url=browser_url,
+            is_prerelease=bool(data.get('prerelease', False)),
         )
 
     except Exception as e:

@@ -524,10 +524,11 @@ class MainWindow(QMainWindow):
 
         update = check_for_updates(self._config.allow_prerelease_updates)
         if update:
+            release_label = 'beta' if update.is_prerelease else 'stable'
             reply = QMessageBox.question(
                 self,
                 'Update Available',
-                f'Version {update.latest_version} is available.\n'
+                f'Version {update.latest_version} ({release_label}) is available.\n'
                 f"You're currently using {update.current_version}.\n\n"
                 f'{update.release_name}\n\n'
                 f'Would you like to download it?',
@@ -650,10 +651,11 @@ class MainWindow(QMainWindow):
         if self._config.auto_check_updates:
             update = check_for_updates(self._config.allow_prerelease_updates)
             if update:
+                release_label = 'beta' if update.is_prerelease else 'stable'
                 reply = QMessageBox.question(
                     self,
                     'Update Available!',
-                    f'Version {update.latest_version} is now available.\n'
+                    f'Version {update.latest_version} ({release_label}) is now available.\n'
                     f"You're currently using {update.current_version}.\n\n"
                     f'Would you like to download it?',
                     QMessageBox.Yes | QMessageBox.No | QMessageBox.Ignore,
