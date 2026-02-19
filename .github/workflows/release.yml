@@ -75,7 +75,6 @@ jobs:
           name: windows-build
           path: |
             build/GaleFling-Setup-*.exe
-            dist/GaleFling-*-portable.zip
 
   release:
     name: Create Draft Release
@@ -172,4 +171,3 @@ jobs:
           body: ${{ steps.release_notes.outputs.body }}
           files: |
             build/GaleFling-Setup-*.exe
-            dist/GaleFling-*-portable.zip
