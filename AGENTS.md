@@ -975,6 +975,7 @@ jasmeralia/galefling/
 
 ### Release Assets
 - `GaleFling-Setup-v0.2.0.exe` (installer)
+- `GaleFling-0.2.0-portable.zip` (no install needed)
 
 ---
 

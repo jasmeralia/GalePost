@@ -63,12 +63,19 @@ jobs:
           }
           & $nsis build\\installer.nsi
 
+      - name: Create portable zip
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          Compress-Archive -Path dist/GaleFling.exe -DestinationPath "dist/GaleFling-${version}-portable.zip"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-build
           path: |
             build/GaleFling-Setup-*.exe
+            dist/GaleFling-*-portable.zip
 
   release:
     name: Create Draft Release
@@ -165,3 +172,4 @@ jobs:
           body: ${{ steps.release_notes.outputs.body }}
           files: |
             build/GaleFling-Setup-*.exe
+            dist/GaleFling-*-portable.zip
