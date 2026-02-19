@@ -226,6 +226,9 @@ class SetupWizard(QWizard):
             window_text = self._wizard_palette.color(QPalette.WindowText).name()
             base_bg = self._wizard_palette.color(QPalette.Base).name()
             base_text = self._wizard_palette.color(QPalette.Text).name()
+            resolved = resolve_theme_mode(self._theme_mode)
+            header_bg = '#3c3c3c' if resolved == 'dark' else window_bg
+            header_text = '#f0f0f0' if resolved == 'dark' else window_text
             self._window_bg = window_bg
             self._window_text = window_text
             self.setStyleSheet(
@@ -233,19 +236,19 @@ class SetupWizard(QWizard):
                 'QLabel[objectName="qt_wizard_h1_label"], '
                 'QWizard QWizardPage#qt_wizard_page '
                 'QLabel[objectName="qt_wizard_h2_label"] {'
-                f'  color: {window_text};'
+                f'  color: {header_text};'
                 '}'
                 'QWizard QWidget#qt_wizard_header, '
                 'QWizard QWidget#qt_wizard_title, '
                 'QWizard QFrame#qt_wizard_header, '
                 'QWizard QFrame#qt_wizard_title {'
-                f'  background-color: {window_bg};'
-                f'  color: {window_text};'
+                f'  background-color: {header_bg};'
+                f'  color: {header_text};'
                 '}'
                 'QWizard QFrame#qt_wizard_button_box, '
                 'QWizard QDialogButtonBox {'
-                f'  background-color: {window_bg};'
-                f'  color: {window_text};'
+                f'  background-color: {header_bg};'
+                f'  color: {header_text};'
                 '}'
                 'QWizard, QWizardPage, QWidget {'
                 f'  background-color: {window_bg};'
@@ -269,8 +272,8 @@ class SetupWizard(QWizard):
                 f'  color: {window_text};'
                 '}'
             )
+            self.setWizardStyle(QWizard.ModernStyle)
             self.setAutoFillBackground(True)
-            resolved = resolve_theme_mode(self._theme_mode)
             set_windows_dark_title_bar(self, resolved == 'dark')
 
         self.addPage(WelcomePage())
@@ -285,14 +288,15 @@ class SetupWizard(QWizard):
             return
 
         # Force theme on Qt wizard chrome (header + button row) after widgets exist.
+        resolved = resolve_theme_mode(self._theme_mode)
+        header_bg = '#3c3c3c' if resolved == 'dark' else self._window_bg
+        header_text = '#f0f0f0' if resolved == 'dark' else self._window_text
         for widget in self.findChildren(QWidget):
             name = widget.objectName()
             if name.startswith('qt_wizard') or isinstance(widget, QDialogButtonBox):
                 widget.setAutoFillBackground(True)
                 widget.setPalette(self._wizard_palette)
-                widget.setStyleSheet(
-                    f'background-color: {self._window_bg}; color: {self._window_text};'
-                )
+                widget.setStyleSheet(f'background-color: {header_bg}; color: {header_text};')
 
         for label_name in (
             'qt_wizard_h1_label',
@@ -303,4 +307,4 @@ class SetupWizard(QWizard):
             label = self.findChild(QLabel, label_name)
             if label is None:
                 continue
-            label.setStyleSheet(f'color: {self._window_text};')
+            label.setStyleSheet(f'color: {header_text};')
