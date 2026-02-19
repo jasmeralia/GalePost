@@ -24,6 +24,7 @@ class WelcomePage(QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle('Welcome to GaleFling!')
+        self.setAutoFillBackground(True)
 
         layout = QVBoxLayout(self)
         layout.addSpacing(20)
@@ -47,6 +48,7 @@ class TwitterSetupPage(QWizardPage):
         super().__init__(parent)
         self._auth_manager = auth_manager
         self._connection_tested = False
+        self.setAutoFillBackground(True)
 
         self.setTitle('Setup - Twitter')
         self.setSubTitle('Step 1 of 2 - Twitter API Credentials')
@@ -129,6 +131,7 @@ class BlueskySetupPage(QWizardPage):
     def __init__(self, auth_manager: AuthManager, parent=None):
         super().__init__(parent)
         self._auth_manager = auth_manager
+        self.setAutoFillBackground(True)
 
         self.setTitle('Setup - Bluesky')
         self.setSubTitle('Step 2 of 2 - Bluesky Account')
@@ -216,7 +219,7 @@ class SetupWizard(QWizard):
             base_bg = app.palette().color(QPalette.Base).name()
             base_text = app.palette().color(QPalette.Text).name()
             self.setStyleSheet(
-                'QWizard, QWizardPage {'
+                'QWizard, QWizardPage, QWidget {'
                 f'  background-color: {window_bg};'
                 f'  color: {window_text};'
                 '}'
@@ -231,6 +234,7 @@ class SetupWizard(QWizard):
                 f'  color: {window_text};'
                 '}'
             )
+            self.setAutoFillBackground(True)
 
         self.addPage(WelcomePage())
         self.addPage(TwitterSetupPage(auth_manager))
