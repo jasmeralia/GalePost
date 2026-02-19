@@ -1,9 +1,10 @@
 ; GaleFling NSIS Installer Script
 
 !include "MUI2.nsh"
+!include "LogicLib.nsh"
 
 Name "GaleFling"
-OutFile "GaleFling-Setup-v0.2.53.exe"
+OutFile "GaleFling-Setup-v0.2.54.exe"
 InstallDir "$PROGRAMFILES\GaleFling"
 InstallDirRegKey HKLM "Software\GaleFling" "InstallDir"
 RequestExecutionLevel admin
@@ -30,9 +31,23 @@ RequestExecutionLevel admin
 
 Section "GaleFling (required)" SecMain
   SectionIn RO
-  ExecWait "taskkill /F /IM GaleFling.exe /T"
-  Sleep 1000
-  ExecWait "taskkill /F /IM GaleFling.exe /T"
+  StrCpy $2 0
+  kill_loop:
+    ExecWait "taskkill /F /IM GaleFling.exe /T"
+    Sleep 1000
+    nsExec::ExecToStack 'cmd /C tasklist /FI "IMAGENAME eq GaleFling.exe" /NH | findstr /I "GaleFling.exe"'
+    Pop $0
+    Pop $1
+    ${If} $0 == 0
+      IntOp $2 $2 + 1
+      ${If} $2 >= 5
+        MessageBox MB_ICONSTOP "GaleFling is still running. Please close the app and retry the installer."
+        Abort
+      ${Else}
+        Sleep 1000
+        Goto kill_loop
+      ${EndIf}
+    ${EndIf}
   CreateDirectory "$INSTDIR"
   SetOutPath "$INSTDIR"
   File "..\dist\GaleFling.exe"
@@ -47,7 +62,7 @@ Section "GaleFling (required)" SecMain
 
   ; Registry
   WriteRegStr HKLM "Software\GaleFling" "InstallDir" "$INSTDIR"
-  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.53"
+  WriteRegStr HKLM "Software\GaleFling" "Version" "0.2.54"
 
   ; Add/Remove Programs entry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
@@ -55,7 +70,7 @@ Section "GaleFling (required)" SecMain
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
-    "DisplayVersion" "0.2.53"
+    "DisplayVersion" "0.2.54"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\GaleFling" \
     "Publisher" "GaleFling"
 SectionEnd
