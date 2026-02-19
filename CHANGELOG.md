@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.58] - 2026-02-17
+- Fix NSIS output path so the installer writes into the build directory.
+
 ## [0.2.57] - 2026-02-17
 - Write the NSIS installer output into the build directory so releases pick it up.
 
