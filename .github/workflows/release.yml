@@ -92,6 +92,10 @@ jobs:
           path: .
           merge-multiple: true
 
+      - name: Remove portable zip
+        run: |
+          find . -name "*-portable.zip" -delete
+
       - name: Get latest published release tag
         id: published_release
         run: |
