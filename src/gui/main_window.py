@@ -329,10 +329,18 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(100, self._show_setup_wizard)
 
     def _show_setup_wizard(self):
-        wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
-        self._apply_dialog_theme(wizard)
-        wizard.exec_()
-        self._refresh_platform_state()
+        try:
+            wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
+            self._apply_dialog_theme(wizard)
+            wizard.exec_()
+            self._refresh_platform_state()
+        except Exception as exc:
+            get_logger().exception('Failed to launch setup wizard', extra={'error': str(exc)})
+            QMessageBox.critical(
+                self,
+                'Setup Wizard Error',
+                'The setup wizard failed to open. Please send your logs to Jas for support.',
+            )
 
     def _on_image_changed(self, image_path):
         self._cleanup_processed_images()
@@ -591,7 +599,10 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap()
         icon_path = get_resource_path('icon.png')
         if icon_path.exists():
-            pixmap = QPixmap(str(icon_path))
+            try:
+                pixmap.loadFromData(icon_path.read_bytes())
+            except OSError:
+                pixmap = QPixmap(str(icon_path))
         if pixmap.isNull():
             fallback_path = get_resource_path('icon.ico')
             if fallback_path.exists():
@@ -832,6 +843,7 @@ class MainWindow(QMainWindow):
                     release_name=update.release_name,
                     release_notes=update.release_notes,
                 )
+                self._apply_dialog_theme(dialog)
                 if dialog.exec_() == dialog.Accepted:
                     self._download_update(update)
 
@@ -855,6 +867,7 @@ class MainWindow(QMainWindow):
         progress.setMinimumDuration(0)
         progress.setAutoClose(True)
         progress.setAutoReset(True)
+        self._apply_dialog_theme(progress)
 
         self._update_worker = UpdateDownloadWorker(
             update.download_url,

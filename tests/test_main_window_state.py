@@ -301,6 +301,73 @@ def test_test_connections_message_includes_usernames(qtbot, monkeypatch):
     )
 
 
+def test_download_update_applies_theme_to_progress(qtbot, monkeypatch, tmp_path):
+    class DummyProgress:
+        def __init__(self, *_args, **_kwargs):
+            self.exec_called = False
+
+        def setWindowTitle(self, _title):  # noqa: N802
+            return
+
+        def setWindowModality(self, _mode):  # noqa: N802
+            return
+
+        def setMinimumDuration(self, _value):  # noqa: N802
+            return
+
+        def setAutoClose(self, _value):  # noqa: N802
+            return
+
+        def setAutoReset(self, _value):  # noqa: N802
+            return
+
+        def setValue(self, _value):  # noqa: N802
+            return
+
+        def exec_(self):
+            self.exec_called = True
+            return 0
+
+    class DummyWorker:
+        def __init__(self, *_args, **_kwargs):
+            class _Signal:
+                def connect(self, *_a, **_k):
+                    return
+
+            self.progress = _Signal()
+            self.finished = _Signal()
+
+        def start(self):
+            return
+
+    monkeypatch.setattr('src.gui.main_window.QProgressDialog', DummyProgress)
+    monkeypatch.setattr('src.gui.main_window.UpdateDownloadWorker', DummyWorker)
+    monkeypatch.setattr('pathlib.Path.home', lambda: tmp_path)
+
+    applied = []
+
+    class DummyWindow(DummyMainWindow):
+        def _apply_dialog_theme(self, dialog):
+            applied.append(dialog)
+
+    window = DummyWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    update = type(
+        'Update',
+        (),
+        {
+            'download_url': 'https://example.invalid/app.exe',
+            'latest_version': '0.0.0',
+            'download_size': 0,
+        },
+    )()
+
+    window._download_update(update)
+
+    assert applied
+
+
 def test_main_window_single_platform_enabled(qtbot):
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
