@@ -379,10 +379,10 @@ class MainWindow(QMainWindow):
             get_logger().info('Setup wizard opened')
         except Exception as exc:
             get_logger().exception('Failed to launch setup wizard', extra={'error': str(exc)})
-            QMessageBox.critical(
-                self,
+            self._show_message_box(
                 'Setup Wizard Error',
                 'The setup wizard failed to open. Please send your logs to Jas for support.',
+                QMessageBox.Critical,
             )
 
     def _on_setup_wizard_finished(self):
@@ -495,12 +495,13 @@ class MainWindow(QMainWindow):
                 if path and path.exists():
                     self._processed_images[platform] = path
         elif dialog.had_errors:
-            reply = QMessageBox.question(
-                self,
+            reply = self._show_message_box(
                 'Image Processing Failed',
                 'One or more image previews failed to process.\n\n'
                 'Would you like to send logs to Jas?',
-                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Question,
+                buttons=QMessageBox.Yes | QMessageBox.No,
+                default=QMessageBox.No,
             )
             if reply == QMessageBox.Yes:
                 self._send_logs()
@@ -529,7 +530,7 @@ class MainWindow(QMainWindow):
             else:
                 msg_parts.append(f'\u274c\ufe0f {pname} failed to connect: {error}')
 
-        QMessageBox.information(self, 'Connection Test', '\n'.join(msg_parts))
+        self._show_message_box('Connection Test', '\n'.join(msg_parts), QMessageBox.Information)
         self._test_btn.setEnabled(True)
         self._status_bar.showMessage('Ready')
 
@@ -549,12 +550,20 @@ class MainWindow(QMainWindow):
         get_logger().info('User clicked Post Now')
         text = self._composer.get_text()
         if not text.strip():
-            QMessageBox.warning(self, 'Empty Post', 'Please enter some text before posting.')
+            self._show_message_box(
+                'Empty Post',
+                'Please enter some text before posting.',
+                QMessageBox.Warning,
+            )
             return
 
         selected = self._get_selected_enabled_platforms()
         if not selected:
-            QMessageBox.warning(self, 'No Platforms', 'Please select at least one platform.')
+            self._show_message_box(
+                'No Platforms',
+                'Please select at least one platform.',
+                QMessageBox.Warning,
+            )
             return
 
         # Check character limits
@@ -563,11 +572,11 @@ class MainWindow(QMainWindow):
             if platform:
                 specs = platform.get_specs()
                 if len(text) > specs.max_text_length:
-                    QMessageBox.warning(
-                        self,
+                    self._show_message_box(
                         'Text Too Long',
                         f'Your post is {len(text)} characters, but '
                         f'{specs.platform_name} allows {specs.max_text_length}.',
+                        QMessageBox.Warning,
                     )
                     return
 
@@ -579,10 +588,10 @@ class MainWindow(QMainWindow):
                 self._show_image_preview(image_path, selected)
                 missing = self._get_missing_processed_platforms(selected)
                 if missing:
-                    QMessageBox.warning(
-                        self,
+                    self._show_message_box(
                         'Image Error',
                         'Image previews could not be generated for all selected platforms.',
+                        QMessageBox.Warning,
                     )
                     return
 
@@ -726,11 +735,12 @@ class MainWindow(QMainWindow):
         dialog.exec_()
 
     def _clear_logs(self):
-        reply = QMessageBox.question(
-            self,
+        reply = self._show_message_box(
             'Clear Logs',
             'This will delete saved logs and screenshots. Continue?',
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Question,
+            buttons=QMessageBox.Yes | QMessageBox.No,
+            default=QMessageBox.No,
         )
         if reply != QMessageBox.Yes:
             return
@@ -771,7 +781,11 @@ class MainWindow(QMainWindow):
                 ss_path.unlink()
                 deleted += 1
 
-        QMessageBox.information(self, 'Logs Cleared', f'Deleted {deleted} log file(s).')
+        self._show_message_box(
+            'Logs Cleared',
+            f'Deleted {deleted} log file(s).',
+            QMessageBox.Information,
+        )
         get_logger().info('Logs cleared')
 
     def _append_fatal_marker(self, label: str) -> None:
@@ -782,6 +796,27 @@ class MainWindow(QMainWindow):
             marker_path.parent.mkdir(parents=True, exist_ok=True)
             with marker_path.open('a', encoding='utf-8') as handle:
                 handle.write(f'\n[{timestamp}] {label}\n')
+
+    def _show_message_box(
+        self,
+        title: str,
+        text: str,
+        icon: QMessageBox.Icon,
+        *,
+        buttons: QMessageBox.StandardButtons = QMessageBox.Ok,
+        default: QMessageBox.StandardButton | None = None,
+    ) -> QMessageBox.StandardButton:
+        from typing import cast
+
+        msg = QMessageBox(self)
+        msg.setWindowTitle(title)
+        msg.setText(text)
+        msg.setIcon(icon)
+        msg.setStandardButtons(buttons)
+        if default is not None:
+            msg.setDefaultButton(default)
+        self._apply_dialog_theme(msg)
+        return cast(QMessageBox.StandardButton, msg.exec_())
 
     def _manual_update_check(self):
         self._status_bar.showMessage('Checking for updates...')
@@ -803,12 +838,11 @@ class MainWindow(QMainWindow):
             if dialog.exec_() == dialog.Accepted:
                 self._download_update(update)
         else:
-            msg = QMessageBox(self)
-            msg.setWindowTitle('No Updates')
-            msg.setText("You're running the latest version!")
-            msg.setIcon(QMessageBox.Information)
-            self._apply_dialog_theme(msg)
-            msg.exec_()
+            self._show_message_box(
+                'No Updates',
+                "You're running the latest version!",
+                QMessageBox.Information,
+            )
 
         self._status_bar.showMessage('Ready')
 
@@ -820,10 +854,10 @@ class MainWindow(QMainWindow):
 
         notes = dialog.get_notes()
         if not notes:
-            QMessageBox.warning(
-                self,
+            self._show_message_box(
                 'Missing Description',
                 'Please describe what you were doing before sending logs.',
+                QMessageBox.Warning,
             )
             return
 
@@ -832,7 +866,7 @@ class MainWindow(QMainWindow):
 
         success, message, details = self._log_uploader.upload(user_notes=notes)
         if success:
-            QMessageBox.information(self, 'Logs Sent', message)
+            self._show_message_box('Logs Sent', message, QMessageBox.Information)
         else:
             msg = QMessageBox(self)
             msg.setWindowTitle('Upload Failed')
@@ -843,6 +877,7 @@ class MainWindow(QMainWindow):
             )
             copy_btn = msg.addButton('Copy Error Details', QMessageBox.ActionRole)
             msg.addButton('Close', QMessageBox.AcceptRole)
+            self._apply_dialog_theme(msg)
             msg.exec_()
             if msg.clickedButton() == copy_btn:
                 QApplication.clipboard().setText(details)
@@ -903,11 +938,12 @@ class MainWindow(QMainWindow):
         if not text_preview:
             return
 
-        reply = QMessageBox.question(
-            self,
+        reply = self._show_message_box(
             'Unsaved Draft Found',
             f'You have an unsaved draft:\n\n"{text_preview}..."\n\nWould you like to restore it?',
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.Question,
+            buttons=QMessageBox.Yes | QMessageBox.No,
+            default=QMessageBox.Yes,
         )
 
         if reply == QMessageBox.Yes:
@@ -956,10 +992,10 @@ class MainWindow(QMainWindow):
 
     def _download_update(self, update):
         if not update.download_url:
-            QMessageBox.warning(
-                self,
+            self._show_message_box(
                 'No Installer Found',
                 'No installer asset was found for this release.',
+                QMessageBox.Warning,
             )
             return
 
@@ -990,18 +1026,18 @@ class MainWindow(QMainWindow):
 
     def _on_update_downloaded(self, success: bool, path: Path | None, message: str):
         if not success:
-            QMessageBox.warning(
-                self,
+            self._show_message_box(
                 'Download Failed',
                 f'Failed to download the installer.\n{message}',
+                QMessageBox.Warning,
             )
             return
 
         if path is None:
-            QMessageBox.warning(
-                self,
+            self._show_message_box(
                 'Download Failed',
                 'Installer download completed without a valid path.',
+                QMessageBox.Warning,
             )
             return
 

@@ -115,11 +115,20 @@ def test_manual_update_check_no_updates_applies_theme(qtbot, monkeypatch):
             'DummyMessageBox',
             (),
             {
+                'Ok': 0,
                 'Information': 1,
+                'Warning': 2,
+                'Question': 3,
+                'Yes': 4,
+                'No': 5,
+                'StandardButtons': int,
+                'StandardButton': int,
                 '__init__': lambda *_a, **_k: None,
                 'setWindowTitle': lambda *_a, **_k: None,
                 'setText': lambda *_a, **_k: None,
                 'setIcon': lambda *_a, **_k: None,
+                'setStandardButtons': lambda *_a, **_k: None,
+                'setDefaultButton': lambda *_a, **_k: None,
                 'exec_': lambda *_a, **_k: 0,
             },
         ),
@@ -351,10 +360,11 @@ def test_test_connections_message_includes_usernames(qtbot, monkeypatch):
 
     captured = {}
 
-    def fake_info(_parent, _title, message):
+    def fake_message_box(_self, _title, message, *_args, **_kwargs):
         captured['message'] = message
+        return 0
 
-    monkeypatch.setattr('src.gui.main_window.QMessageBox.information', fake_info)
+    monkeypatch.setattr('src.gui.main_window.MainWindow._show_message_box', fake_message_box)
 
     window._test_connections()
 
@@ -447,7 +457,7 @@ def test_show_setup_wizard_logs_failure(qtbot, monkeypatch):
         'src.gui.main_window.SetupWizard',
         lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError('boom')),
     )
-    monkeypatch.setattr('src.gui.main_window.QMessageBox.critical', lambda *_a, **_k: None)
+    monkeypatch.setattr('src.gui.main_window.MainWindow._show_message_box', lambda *_a, **_k: 0)
 
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
@@ -469,8 +479,7 @@ def test_action_logging_for_post_and_connections(qtbot, monkeypatch, tmp_path):
 
     logger = DummyLogger()
     monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
-    monkeypatch.setattr('src.gui.main_window.QMessageBox.warning', lambda *_a, **_k: None)
-    monkeypatch.setattr('src.gui.main_window.QMessageBox.information', lambda *_a, **_k: None)
+    monkeypatch.setattr('src.gui.main_window.MainWindow._show_message_box', lambda *_a, **_k: 0)
 
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
