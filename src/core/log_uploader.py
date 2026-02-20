@@ -10,7 +10,7 @@ import requests
 from src.core.config_manager import ConfigManager
 from src.core.logger import get_current_log_path, get_logger
 from src.utils.constants import APP_VERSION
-from src.utils.helpers import get_installation_id, get_logs_dir, get_os_info
+from src.utils.helpers import OsInfo, get_installation_id, get_logs_dir, get_os_info
 
 
 class LogUploader:
@@ -168,7 +168,7 @@ class LogUploader:
         installation_id: str,
         hostname: str,
         username: str,
-        os_info: dict,
+        os_info: OsInfo,
         response_text: str | None = None,
         exception: Exception | None = None,
     ) -> str:
@@ -193,7 +193,7 @@ class LogUploader:
 
     def _collect_log_files(self) -> list[dict]:
         """Collect and base64-encode recent log files."""
-        log_files = []
+        log_files: list[dict[str, str]] = []
         current_log = get_current_log_path()
         if current_log and current_log.exists():
             content = current_log.read_bytes()
@@ -221,7 +221,7 @@ class LogUploader:
 
     def _collect_screenshots(self) -> list[dict]:
         """Collect and base64-encode recent screenshots."""
-        screenshots = []
+        screenshots: list[dict[str, str]] = []
         ss_dir = get_logs_dir() / 'screenshots'
         if not ss_dir.exists():
             return screenshots

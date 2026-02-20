@@ -36,18 +36,18 @@ def resolve_theme_mode(mode: str) -> str:
 def _apply_dark_palette(app: QApplication):
     palette = QPalette()
     palette.setColor(QPalette.Window, QColor(53, 53, 53))
-    palette.setColor(QPalette.WindowText, Qt.white)
+    palette.setColor(QPalette.WindowText, Qt.GlobalColor.white)
     palette.setColor(QPalette.Base, QColor(35, 35, 35))
     palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    palette.setColor(QPalette.ToolTipBase, Qt.white)
-    palette.setColor(QPalette.ToolTipText, Qt.white)
-    palette.setColor(QPalette.Text, Qt.white)
+    palette.setColor(QPalette.ToolTipBase, Qt.GlobalColor.white)
+    palette.setColor(QPalette.ToolTipText, Qt.GlobalColor.white)
+    palette.setColor(QPalette.Text, Qt.GlobalColor.white)
     palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    palette.setColor(QPalette.ButtonText, Qt.white)
-    palette.setColor(QPalette.BrightText, Qt.red)
+    palette.setColor(QPalette.ButtonText, Qt.GlobalColor.white)
+    palette.setColor(QPalette.BrightText, Qt.GlobalColor.red)
     palette.setColor(QPalette.Link, QColor(42, 130, 218))
     palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    palette.setColor(QPalette.HighlightedText, Qt.black)
+    palette.setColor(QPalette.HighlightedText, Qt.GlobalColor.black)
     app.setPalette(palette)
 
 
@@ -86,7 +86,11 @@ def apply_theme(app: QApplication, window: QMainWindow | None, mode: str) -> str
     if use_dark:
         _apply_dark_palette(app)
     else:
-        app.setPalette(app.style().standardPalette())
+        style = app.style()
+        if style is not None:
+            app.setPalette(style.standardPalette())
+        else:
+            app.setPalette(QPalette())
 
     if window is not None:
         set_windows_dark_title_bar(window, use_dark)

@@ -82,12 +82,13 @@ class ResultsDialog(QDialog):
         if result.post_url:
             link = QLabel(f'<a href="{result.post_url}">{result.post_url}</a>')
             link.setOpenExternalLinks(True)
-            link.setTextInteractionFlags(Qt.TextBrowserInteraction)
+            link.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
             layout.addWidget(link)
 
             copy_btn = QPushButton('Copy Link')
             copy_btn.setMaximumWidth(100)
-            copy_btn.clicked.connect(lambda: self._copy_text(result.post_url))
+            post_url = result.post_url
+            copy_btn.clicked.connect(lambda _, url=post_url: self._copy_text(url))
             layout.addWidget(copy_btn)
 
     def _add_failure_row(self, layout: QVBoxLayout, result: PostResult):
@@ -121,12 +122,18 @@ class ResultsDialog(QDialog):
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
-    def _copy_text(self, text: str):
-        QApplication.clipboard().setText(text)
+    def _copy_text(self, text: str | None):
+        if not text:
+            return
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
 
     def _copy_all_links(self, results: list[PostResult]):
         lines = [f'{r.platform}: {r.post_url}' for r in results if r.post_url]
-        QApplication.clipboard().setText('\n'.join(lines))
+        clipboard = QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText('\n'.join(lines))
 
     def _on_send_logs(self):
         self._send_logs_requested = True

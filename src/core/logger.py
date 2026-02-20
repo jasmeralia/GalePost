@@ -94,9 +94,11 @@ def log_error(
 def capture_screenshot(error_code: str):
     """Capture a screenshot of the current application state."""
     try:
+        from typing import cast
+
         from PyQt5.QtWidgets import QApplication
 
-        app = QApplication.instance()
+        app = cast(QApplication | None, QApplication.instance())
         if app is None:
             return
 
@@ -107,9 +109,9 @@ def capture_screenshot(error_code: str):
         # Find the active window for the screenshot
         active_window = app.activeWindow()
         if active_window is not None:
-            screenshot = screen.grabWindow(active_window.winId())
+            screenshot = screen.grabWindow(active_window.winId())  # type: ignore[arg-type]
         else:
-            screenshot = screen.grabWindow(0)
+            screenshot = screen.grabWindow(0)  # type: ignore[arg-type]
 
         logs_dir = get_logs_dir()
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

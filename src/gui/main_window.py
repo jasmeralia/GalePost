@@ -270,7 +270,9 @@ class MainWindow(QMainWindow):
 
     def _set_theme_mode(self, mode: str):
         self._config.theme_mode = mode
-        app = QApplication.instance()
+        from typing import cast
+
+        app = cast(QApplication | None, QApplication.instance())
         if app is not None:
             apply_theme(app, self, mode)
 
@@ -743,9 +745,19 @@ class MainWindow(QMainWindow):
             )
             return
 
+        if path is None:
+            QMessageBox.warning(
+                self,
+                'Download Failed',
+                'Installer download completed without a valid path.',
+            )
+            return
+
         self._launch_installer_after_exit(path)
         self._auto_save_draft()
-        QTimer.singleShot(100, QApplication.instance().quit)
+        app = QApplication.instance()
+        if app is not None:
+            QTimer.singleShot(100, app.quit)
 
     def _launch_installer_after_exit(self, path: Path):
         logger = get_logger()
@@ -756,7 +768,8 @@ class MainWindow(QMainWindow):
         try:
             import ctypes
 
-            result = ctypes.windll.shell32.ShellExecuteW(
+            shell32 = ctypes.windll.shell32  # type: ignore[attr-defined]
+            result = shell32.ShellExecuteW(
                 None,
                 'runas',
                 str(path),

@@ -1,8 +1,9 @@
 """Twitter platform implementation using Tweepy."""
 
 from pathlib import Path
+from typing import Any
 
-import tweepy
+import tweepy  # type: ignore[import-untyped]
 
 from src.core.auth_manager import AuthManager
 from src.core.error_handler import create_error_result
@@ -16,8 +17,8 @@ class TwitterPlatform(BasePlatform):
 
     def __init__(self, auth_manager: AuthManager):
         self._auth_manager = auth_manager
-        self._client: tweepy.Client | None = None
-        self._api_v1: tweepy.API | None = None
+        self._client: Any | None = None
+        self._api_v1: Any | None = None
 
     def get_platform_name(self) -> str:
         return 'Twitter'
@@ -54,9 +55,12 @@ class TwitterPlatform(BasePlatform):
         success, error = self.authenticate()
         if not success:
             return False, error
+        client = self._client
+        if client is None:
+            return False, 'TW-AUTH-INVALID'
 
         try:
-            me = self._client.get_me()
+            me = client.get_me()
             if me and me.data:
                 get_logger().info(f'Twitter connected as @{me.data.username}')
                 return True, None
@@ -73,12 +77,16 @@ class TwitterPlatform(BasePlatform):
         if not self._client:
             success, error = self.authenticate()
             if not success:
-                return create_error_result(error, 'Twitter')
+                return create_error_result(error or 'AUTH-MISSING', 'Twitter')
+        client = self._client
+        api_v1 = self._api_v1
+        if client is None or api_v1 is None:
+            return create_error_result('TW-AUTH-INVALID', 'Twitter')
 
         media_id = None
         if image_path:
             try:
-                media = self._api_v1.media_upload(filename=str(image_path))
+                media = api_v1.media_upload(filename=str(image_path))
                 media_id = media.media_id
             except tweepy.TooManyRequests:
                 return create_error_result('TW-RATE-LIMIT', 'Twitter')
@@ -92,12 +100,12 @@ class TwitterPlatform(BasePlatform):
 
         try:
             media_ids = [media_id] if media_id else None
-            response = self._client.create_tweet(text=text, media_ids=media_ids)
+            response = client.create_tweet(text=text, media_ids=media_ids)
 
             if response and response.data:
                 tweet_id = response.data['id']
                 # Get username for URL
-                me = self._client.get_me()
+                me = client.get_me()
                 username = me.data.username if me and me.data else 'i'
                 post_url = f'https://twitter.com/{username}/status/{tweet_id}'
 

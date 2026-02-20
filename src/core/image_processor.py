@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
+from PIL.Image import Resampling
 
 from src.core.logger import get_logger
 from src.utils.constants import PlatformSpecs
@@ -95,7 +96,7 @@ def process_image(
         _emit_progress(progress_cb, 0)
         original_file_size = image_path.stat().st_size
 
-        img = Image.open(image_path)
+        img: Image.Image = Image.open(image_path)
         original_size = img.size
         logger.info(
             'Loaded image',
@@ -143,7 +144,7 @@ def process_image(
             ratio = min(max_w / w, max_h / h)
             new_w = int(w * ratio)
             new_h = int(h * ratio)
-            img = img.resize((new_w, new_h), Image.LANCZOS)
+            img = img.resize((new_w, new_h), Resampling.LANCZOS)
             logger.info(f'Resized {w}x{h} -> {new_w}x{new_h} for {specs.platform_name}')
         _emit_progress(progress_cb, 40)
 
@@ -155,13 +156,12 @@ def process_image(
         while quality >= 20:
             buf.seek(0)
             buf.truncate()
-            save_kwargs = {'format': out_format}
             if out_format.upper() in ('JPEG', 'JPG'):
-                save_kwargs['quality'] = quality
-                save_kwargs['optimize'] = True
+                img.save(buf, format=out_format, quality=quality, optimize=True)
             elif out_format.upper() == 'PNG':
-                save_kwargs['optimize'] = True
-            img.save(buf, **save_kwargs)
+                img.save(buf, format=out_format, optimize=True)
+            else:
+                img.save(buf, format=out_format)
 
             logger.debug(
                 'Compression attempt',
@@ -184,15 +184,14 @@ def process_image(
         while buf.tell() > max_bytes and scale_factor > 0.3:
             new_w = int(img.size[0] * scale_factor)
             new_h = int(img.size[1] * scale_factor)
-            img = img.resize((new_w, new_h), Image.LANCZOS)
+            img = img.resize((new_w, new_h), Resampling.LANCZOS)
 
             buf.seek(0)
             buf.truncate()
-            save_kwargs = {'format': out_format}
             if out_format.upper() in ('JPEG', 'JPG'):
-                save_kwargs['quality'] = max(quality, 20)
-                save_kwargs['optimize'] = True
-            img.save(buf, **save_kwargs)
+                img.save(buf, format=out_format, quality=max(quality, 20), optimize=True)
+            else:
+                img.save(buf, format=out_format)
             scale_factor -= 0.1
             logger.debug(
                 'Dimension reduction attempt',
@@ -261,8 +260,8 @@ def process_image(
 def generate_thumbnail(image_path: Path, max_size: int = 400) -> Path | None:
     """Generate a thumbnail for preview display."""
     try:
-        img = Image.open(image_path)
-        img.thumbnail((max_size, max_size), Image.LANCZOS)
+        img: Image.Image = Image.open(image_path)
+        img.thumbnail((max_size, max_size), Resampling.LANCZOS)
         with tempfile.NamedTemporaryFile(suffix='_thumb.png', delete=False) as tmp:
             img.save(tmp.name, 'PNG')
             get_logger().info(

@@ -217,7 +217,9 @@ class SetupWizard(QWizard):
         self._wizard_palette = None
         self._window_bg = None
         self._window_text = None
-        app = QApplication.instance()
+        from typing import cast
+
+        app = cast(QApplication | None, QApplication.instance())
         if app is not None:
             self.setStyle(app.style())
             self.setPalette(app.palette())

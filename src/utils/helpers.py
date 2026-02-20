@@ -54,7 +54,10 @@ def get_installation_id() -> str:
 def get_resource_path(filename: str) -> Path:
     """Return path to a bundled resource file."""
     if getattr(sys, 'frozen', False):
-        base = Path(sys._MEIPASS)
+        base_path = getattr(sys, '_MEIPASS', None)
+        if not base_path:
+            base_path = str(Path(__file__).resolve().parent.parent.parent / 'resources')
+        base = Path(base_path)
     else:
         base = Path(__file__).resolve().parent.parent.parent / 'resources'
     return base / filename

@@ -45,7 +45,7 @@ class ImagePreviewTab(QWidget):
 
         layout = QVBoxLayout(self)
         self._status_label = QLabel('Click this tab to generate preview...')
-        self._status_label.setAlignment(Qt.AlignCenter)
+        self._status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._status_label)
 
         self._progress = QProgressBar()
@@ -55,12 +55,12 @@ class ImagePreviewTab(QWidget):
         layout.addWidget(self._progress)
 
         self._preview_label = QLabel()
-        self._preview_label.setAlignment(Qt.AlignCenter)
+        self._preview_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._preview_label.setMinimumSize(400, 400)
         layout.addWidget(self._preview_label)
 
         self._details_label = QLabel()
-        self._details_label.setAlignment(Qt.AlignCenter)
+        self._details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self._details_label)
 
     def load_preview(self):
@@ -102,7 +102,12 @@ class ImagePreviewTab(QWidget):
         # Show thumbnail
         pixmap = QPixmap(str(result.path))
         if pixmap.width() > 400 or pixmap.height() > 400:
-            pixmap = pixmap.scaled(400, 400, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap = pixmap.scaled(
+                400,
+                400,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
         self._preview_label.setPixmap(pixmap)
 
         # Status

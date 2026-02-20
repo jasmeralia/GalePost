@@ -3,8 +3,9 @@
 import re
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from atproto import Client as BskyClient
+from atproto import Client as BskyClient  # type: ignore[import-untyped]
 
 from src.core.auth_manager import AuthManager
 from src.core.error_handler import create_error_result
@@ -51,7 +52,7 @@ class BlueskyPlatform(BasePlatform):
 
     def __init__(self, auth_manager: AuthManager):
         self._auth_manager = auth_manager
-        self._client: BskyClient | None = None
+        self._client: Any | None = None
 
     def get_platform_name(self) -> str:
         return 'Bluesky'
@@ -83,9 +84,12 @@ class BlueskyPlatform(BasePlatform):
         success, error = self.authenticate()
         if not success:
             return False, error
+        client = self._client
+        if client is None:
+            return False, 'BS-AUTH-INVALID'
 
         try:
-            profile = self._client.get_profile(self._client.me.did)
+            profile = client.get_profile(client.me.did)
             get_logger().info(f'Bluesky connected as @{profile.handle}')
             return True, None
         except Exception as e:
@@ -96,17 +100,20 @@ class BlueskyPlatform(BasePlatform):
         if not self._client:
             success, error = self.authenticate()
             if not success:
-                return create_error_result(error, 'Bluesky')
+                return create_error_result(error or 'AUTH-MISSING', 'Bluesky')
+        client = self._client
+        if client is None:
+            return create_error_result('BS-AUTH-INVALID', 'Bluesky')
 
         try:
             facets = detect_urls(text)
-            embed = None
-            images = None
+            embed: dict[str, object] | None = None
+            images: list[dict[str, object]] | None = None
 
             if image_path:
                 try:
                     img_data = image_path.read_bytes()
-                    upload = self._client.upload_blob(img_data)
+                    upload = client.upload_blob(img_data)
                     images = [
                         {
                             'alt': '',
@@ -125,7 +132,7 @@ class BlueskyPlatform(BasePlatform):
                         details={'image_path': str(image_path)},
                     )
 
-            record = {
+            record: dict[str, object] = {
                 '$type': 'app.bsky.feed.post',
                 'text': text,
                 'createdAt': datetime.now(UTC).isoformat(),
@@ -135,9 +142,9 @@ class BlueskyPlatform(BasePlatform):
             if embed:
                 record['embed'] = embed
 
-            response = self._client.com.atproto.repo.create_record(
+            response = client.com.atproto.repo.create_record(
                 data={
-                    'repo': self._client.me.did,
+                    'repo': client.me.did,
                     'collection': 'app.bsky.feed.post',
                     'record': record,
                 }
@@ -145,7 +152,7 @@ class BlueskyPlatform(BasePlatform):
 
             # Build post URL
             rkey = response.uri.split('/')[-1]
-            handle = self._client.me.handle
+            handle = client.me.handle
             post_url = f'https://bsky.app/profile/{handle}/post/{rkey}'
 
             get_logger().info(f'Bluesky post success: {post_url}')

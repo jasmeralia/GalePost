@@ -23,7 +23,8 @@ def _abort_if_elevated():
     try:
         import ctypes
 
-        if ctypes.windll.shell32.IsUserAnAdmin() != 0:
+        shell32 = ctypes.windll.shell32  # type: ignore[attr-defined]
+        if shell32.IsUserAnAdmin() != 0:
             QMessageBox.critical(
                 None,
                 'Administrator Mode Not Supported',
