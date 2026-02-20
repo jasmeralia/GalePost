@@ -12,6 +12,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from src.core.auth_manager import AuthManager
@@ -19,7 +20,7 @@ from src.core.config_manager import ConfigManager
 from src.core.logger import get_logger, setup_logging
 from src.gui.main_window import MainWindow
 from src.utils.constants import APP_NAME, APP_ORG
-from src.utils.helpers import get_logs_dir
+from src.utils.helpers import get_logs_dir, get_resource_path
 from src.utils.theme import apply_theme
 
 
@@ -56,12 +57,6 @@ class GaleFlingApplication(QApplication):
             logger.error('Unhandled Qt exception', exc_info=(exc_type, exc, tb))
             _flush_logger(logger)
             _write_crash_log(exc_type, exc, tb, context='qt')
-            with contextlib.suppress(Exception):
-                QMessageBox.critical(
-                    None,
-                    'Unexpected Error',
-                    'An unexpected error occurred. Please send your logs to Jas for support.',
-                )
             return False
 
 
@@ -77,6 +72,7 @@ def main():
     app = GaleFlingApplication(sys.argv)
     app.setApplicationName(APP_NAME)
     app.setOrganizationName(APP_ORG)
+    _apply_app_icon(app)
     apply_theme(app, None, config.theme_mode)
     _abort_if_elevated()
 
@@ -123,6 +119,14 @@ def _install_exception_logging():
     sys.excepthook = handle_exception
     if hasattr(threading, 'excepthook'):
         threading.excepthook = handle_thread_exception
+
+
+def _apply_app_icon(app: QApplication) -> None:
+    icon_path = get_resource_path('icon.png')
+    if not icon_path.exists():
+        icon_path = get_resource_path('icon.ico')
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
 
 
 def _enable_fault_handler():

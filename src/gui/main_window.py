@@ -605,31 +605,27 @@ class MainWindow(QMainWindow):
             with contextlib.suppress(OSError):
                 size = icon_path.stat().st_size
         get_logger().info(
-            'About icon path resolved',
-            extra={'path': str(icon_path), 'exists': exists, 'bytes': size},
+            f'About icon path resolved: path={icon_path} exists={exists} bytes={size}'
         )
         if exists:
             try:
                 data = icon_path.read_bytes()
                 pixmap.loadFromData(data)
                 get_logger().info(
-                    'About icon PNG load result',
-                    extra={'is_null': pixmap.isNull(), 'bytes': len(data)},
+                    f'About icon PNG load result: is_null={pixmap.isNull()} bytes={len(data)}'
                 )
             except OSError as exc:
-                get_logger().warning('About icon PNG read failed', extra={'error': str(exc)})
+                get_logger().warning(f'About icon PNG read failed: {exc}')
                 pixmap = QPixmap(str(icon_path))
                 get_logger().info(
-                    'About icon PNG load fallback',
-                    extra={'is_null': pixmap.isNull(), 'path': str(icon_path)},
+                    f'About icon PNG load fallback: is_null={pixmap.isNull()} path={icon_path}'
                 )
         if pixmap.isNull():
             fallback_path = get_resource_path('icon.ico')
             if fallback_path.exists():
                 pixmap = QPixmap(str(fallback_path))
                 get_logger().info(
-                    'About icon ICO load result',
-                    extra={'is_null': pixmap.isNull(), 'path': str(fallback_path)},
+                    f'About icon ICO load result: is_null={pixmap.isNull()} path={fallback_path}'
                 )
         if pixmap.isNull():
             app = QApplication.instance()
@@ -637,10 +633,7 @@ class MainWindow(QMainWindow):
                 app_icon = app.windowIcon()
                 if not app_icon.isNull():
                     pixmap = app_icon.pixmap(96, 96)
-                    get_logger().info(
-                        'About icon fallback to app icon',
-                        extra={'is_null': pixmap.isNull()},
-                    )
+                    get_logger().info(f'About icon fallback to app icon: is_null={pixmap.isNull()}')
         if not pixmap.isNull():
             pixmap = pixmap.scaled(
                 96,

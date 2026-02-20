@@ -383,7 +383,6 @@ class SetupWizard(QWizard):
             )
             self.setWizardStyle(QWizard.ModernStyle)
             self.setAutoFillBackground(True)
-            set_windows_dark_title_bar(self, resolved == 'dark')
 
         self.addPage(WelcomePage())
         self.addPage(TwitterSetupPage(auth_manager))
@@ -398,6 +397,7 @@ class SetupWizard(QWizard):
 
         # Force theme on Qt wizard chrome (header + button row) after widgets exist.
         resolved = resolve_theme_mode(self._theme_mode)
+        set_windows_dark_title_bar(self, resolved == 'dark')
         header_bg = '#3c3c3c' if resolved == 'dark' else self._window_bg
         header_text = '#f0f0f0' if resolved == 'dark' else self._window_text
         for widget in self.findChildren(QWidget):

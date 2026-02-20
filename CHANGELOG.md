@@ -5,12 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.109] - 2026-02-20
-- Log unhandled Qt event exceptions to crash logs with stack traces.
-- Add faulthandler-backed fatal error logging for hard crashes.
-- Improve About icon diagnostics and add fallback to the app icon.
-- Add regression tests for crash log creation.
-- Update README badges to use GitHub workflow status and add a release badge.
+## [0.2.110] - 2026-02-20
+- Apply the app icon at startup and improve About icon diagnostics.
+- Move setup wizard title bar theming to show-time to avoid Win11 crashes.
+- Avoid showing modal dialogs inside Qt event exception handling.
 
 ## [0.2.108] - 2026-02-20
 - Wire APP_ORG into app metadata and capture unhandled exceptions in logs.
