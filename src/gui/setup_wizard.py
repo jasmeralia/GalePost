@@ -2,8 +2,6 @@
 
 from PyQt5.QtGui import QPalette
 from PyQt5.QtWidgets import (
-    QApplication,
-    QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -11,7 +9,6 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QPushButton,
     QVBoxLayout,
-    QWidget,
     QWizard,
     QWizardPage,
 )
@@ -20,7 +17,6 @@ from src.core.auth_manager import AuthManager
 from src.core.logger import get_logger
 from src.platforms.bluesky import BlueskyPlatform
 from src.platforms.twitter import TwitterPlatform
-from src.utils.theme import resolve_theme_mode
 
 
 class WelcomePage(QWizardPage):
@@ -324,68 +320,8 @@ class SetupWizard(QWizard):
         self.setWindowTitle('GaleFling - Setup')
         self.setMinimumSize(550, 450)
         self._theme_mode = theme_mode
-        self._wizard_palette = None
-        self._window_bg = None
-        self._window_text = None
-        from typing import cast
-
-        app = cast(QApplication | None, QApplication.instance())
-        if app is not None:
-            self.setStyle(app.style())
-            self.setPalette(app.palette())
-            self._wizard_palette = app.palette()
-            window_bg = self._wizard_palette.color(QPalette.Window).name()
-            window_text = self._wizard_palette.color(QPalette.WindowText).name()
-            base_bg = self._wizard_palette.color(QPalette.Base).name()
-            base_text = self._wizard_palette.color(QPalette.Text).name()
-            resolved = resolve_theme_mode(self._theme_mode)
-            header_bg = '#3c3c3c' if resolved == 'dark' else window_bg
-            header_text = '#f0f0f0' if resolved == 'dark' else window_text
-            self._window_bg = window_bg
-            self._window_text = window_text
-            self.setStyleSheet(
-                'QWizard QWizardPage#qt_wizard_page '
-                'QLabel[objectName="qt_wizard_h1_label"], '
-                'QWizard QWizardPage#qt_wizard_page '
-                'QLabel[objectName="qt_wizard_h2_label"] {'
-                f'  color: {header_text};'
-                '}'
-                'QWizard QWidget#qt_wizard_header, '
-                'QWizard QWidget#qt_wizard_title, '
-                'QWizard QFrame#qt_wizard_header, '
-                'QWizard QFrame#qt_wizard_title {'
-                f'  background-color: {header_bg};'
-                f'  color: {header_text};'
-                '}'
-                'QWizard QFrame#qt_wizard_button_box, '
-                'QWizard QDialogButtonBox {'
-                f'  background-color: {header_bg};'
-                f'  color: {header_text};'
-                '}'
-                'QWizard, QWizardPage, QWidget {'
-                f'  background-color: {window_bg};'
-                f'  color: {window_text};'
-                '}'
-                'QLabel {'
-                f'  color: {window_text};'
-                '}'
-                'QWizard QDialogButtonBox, QWizard QFrame {'
-                f'  background-color: {window_bg};'
-                '}'
-                'QWizard QPushButton {'
-                f'  background-color: {base_bg};'
-                f'  color: {base_text};'
-                '}'
-                'QLineEdit {'
-                f'  background-color: {base_bg};'
-                f'  color: {base_text};'
-                '}'
-                'QGroupBox {'
-                f'  color: {window_text};'
-                '}'
-            )
-            self.setWizardStyle(QWizard.ModernStyle)
-            self.setAutoFillBackground(True)
+        self.setWizardStyle(QWizard.ModernStyle)
+        self.setAutoFillBackground(True)
 
         logger.info('Setup wizard adding pages')
         self.addPage(WelcomePage())
@@ -394,31 +330,3 @@ class SetupWizard(QWizard):
 
         self.setButtonText(QWizard.FinishButton, 'Finish')
         logger.info('Setup wizard init complete')
-
-    def showEvent(self, event):  # noqa: N802
-        super().showEvent(event)
-        if not self._wizard_palette or not self._window_bg or not self._window_text:
-            return
-
-        # Force theme on Qt wizard chrome (header + button row) after widgets exist.
-        resolved = resolve_theme_mode(self._theme_mode)
-        get_logger().info(f'Setup wizard showEvent theme={resolved}')
-        header_bg = '#3c3c3c' if resolved == 'dark' else self._window_bg
-        header_text = '#f0f0f0' if resolved == 'dark' else self._window_text
-        for widget in self.findChildren(QWidget):
-            name = widget.objectName()
-            if name.startswith('qt_wizard') or isinstance(widget, QDialogButtonBox):
-                widget.setAutoFillBackground(True)
-                widget.setPalette(self._wizard_palette)
-                widget.setStyleSheet(f'background-color: {header_bg}; color: {header_text};')
-
-        for label_name in (
-            'qt_wizard_h1_label',
-            'qt_wizard_h2_label',
-            'qt_wizard_title_label',
-            'qt_wizard_subtitle_label',
-        ):
-            label = self.findChild(QLabel, label_name)
-            if label is None:
-                continue
-            label.setStyleSheet(f'color: {header_text};')

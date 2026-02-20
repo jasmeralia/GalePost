@@ -322,10 +322,7 @@ class MainWindow(QMainWindow):
 
         app = cast(QApplication | None, QApplication.instance())
         if app is not None:
-            if isinstance(dialog, SetupWizard):
-                apply_theme(app, None, self._config.theme_mode)
-            else:
-                apply_theme(app, dialog, self._config.theme_mode)
+            apply_theme(app, dialog, self._config.theme_mode)
 
     def _restore_geometry(self):
         geo = self._config.window_geometry
@@ -374,7 +371,7 @@ class MainWindow(QMainWindow):
             wizard.finished.connect(self._on_setup_wizard_finished)
             self._append_fatal_marker('Setup wizard opening')
             wizard.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose, True)
-            wizard.setWindowModality(Qt.WindowModality.ApplicationModal)
+            wizard.setWindowModality(Qt.WindowModality.WindowModal)
             wizard.show()
             get_logger().info('Setup wizard opened')
         except Exception as exc:

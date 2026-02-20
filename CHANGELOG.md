@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.117] - 2026-02-20
+- Apply consistent themed message boxes across the main window.
+- Simplify setup wizard styling to reduce access violations.
+- Update setup wizard tests to match new styling approach.
+
 ## [0.2.116] - 2026-02-20
 - Apply themed message boxes consistently (clear logs, logs cleared, warnings).
 - Add test coverage for themed no-update and connection dialogs.

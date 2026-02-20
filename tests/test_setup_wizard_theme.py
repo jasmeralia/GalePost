@@ -1,3 +1,5 @@
+from PyQt5.QtWidgets import QWizard
+
 from src.gui.setup_wizard import SetupWizard
 
 
@@ -18,4 +20,5 @@ def test_setup_wizard_applies_style(qtbot):
     wizard.show()
     qtbot.waitExposed(wizard)
 
-    assert 'background-color' in wizard.styleSheet()
+    assert wizard.wizardStyle() == QWizard.ModernStyle
+    assert wizard.autoFillBackground() is True
