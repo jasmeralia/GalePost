@@ -368,6 +368,30 @@ def test_download_update_applies_theme_to_progress(qtbot, monkeypatch, tmp_path)
     assert applied
 
 
+def test_show_setup_wizard_logs_failure(qtbot, monkeypatch):
+    class DummyLogger:
+        def __init__(self):
+            self.logged = False
+
+        def exception(self, *_args, **_kwargs):
+            self.logged = True
+
+    logger = DummyLogger()
+    monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
+    monkeypatch.setattr(
+        'src.gui.main_window.SetupWizard',
+        lambda *_a, **_k: (_ for _ in ()).throw(RuntimeError('boom')),
+    )
+    monkeypatch.setattr('src.gui.main_window.QMessageBox.critical', lambda *_a, **_k: None)
+
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    window._show_setup_wizard()
+
+    assert logger.logged
+
+
 def test_main_window_single_platform_enabled(qtbot):
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)

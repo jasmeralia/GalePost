@@ -330,6 +330,7 @@ class MainWindow(QMainWindow):
 
     def _show_setup_wizard(self):
         try:
+            get_logger().info('Launching setup wizard')
             wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
             self._apply_dialog_theme(wizard)
             wizard.exec_()
@@ -598,15 +599,48 @@ class MainWindow(QMainWindow):
         icon_label.setScaledContents(True)
         pixmap = QPixmap()
         icon_path = get_resource_path('icon.png')
-        if icon_path.exists():
+        exists = icon_path.exists()
+        size = None
+        if exists:
+            with contextlib.suppress(OSError):
+                size = icon_path.stat().st_size
+        get_logger().info(
+            'About icon path resolved',
+            extra={'path': str(icon_path), 'exists': exists, 'bytes': size},
+        )
+        if exists:
             try:
-                pixmap.loadFromData(icon_path.read_bytes())
-            except OSError:
+                data = icon_path.read_bytes()
+                pixmap.loadFromData(data)
+                get_logger().info(
+                    'About icon PNG load result',
+                    extra={'is_null': pixmap.isNull(), 'bytes': len(data)},
+                )
+            except OSError as exc:
+                get_logger().warning('About icon PNG read failed', extra={'error': str(exc)})
                 pixmap = QPixmap(str(icon_path))
+                get_logger().info(
+                    'About icon PNG load fallback',
+                    extra={'is_null': pixmap.isNull(), 'path': str(icon_path)},
+                )
         if pixmap.isNull():
             fallback_path = get_resource_path('icon.ico')
             if fallback_path.exists():
                 pixmap = QPixmap(str(fallback_path))
+                get_logger().info(
+                    'About icon ICO load result',
+                    extra={'is_null': pixmap.isNull(), 'path': str(fallback_path)},
+                )
+        if pixmap.isNull():
+            app = QApplication.instance()
+            if app is not None:
+                app_icon = app.windowIcon()
+                if not app_icon.isNull():
+                    pixmap = app_icon.pixmap(96, 96)
+                    get_logger().info(
+                        'About icon fallback to app icon',
+                        extra={'is_null': pixmap.isNull()},
+                    )
         if not pixmap.isNull():
             pixmap = pixmap.scaled(
                 96,
@@ -615,7 +649,9 @@ class MainWindow(QMainWindow):
                 Qt.TransformationMode.SmoothTransformation,
             )
             icon_label.setPixmap(pixmap)
-            layout.addWidget(icon_label)
+        else:
+            get_logger().warning('About icon unavailable after fallbacks')
+        layout.addWidget(icon_label)
 
         body = QLabel(
             'Post to Twitter and Bluesky simultaneously.<br><br>'
