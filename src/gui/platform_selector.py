@@ -19,7 +19,7 @@ class PlatformSelector(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         label = QLabel('Post to:')
-        label.setStyleSheet('font-weight: bold; font-size: 13px;')
+        label.setStyleSheet('font-weight: bold; font-size: 13px; color: palette(text);')
         layout.addWidget(label)
 
         layout.addSpacing(10)

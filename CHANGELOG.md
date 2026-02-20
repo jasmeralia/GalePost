@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.95] - 2026-02-20
+- Use theme-aware label colors for the main composer and platform selector.
+
 ## [0.2.94] - 2026-02-20
 - Upload Codecov test results via the Codecov test-results action.
 - Move Codecov uploads to v5 for CI and release workflows.

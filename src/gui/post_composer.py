@@ -40,7 +40,7 @@ class PostComposer(QWidget):
 
         # Text label
         text_label = QLabel('Post Text:')
-        text_label.setStyleSheet('font-weight: bold; font-size: 13px;')
+        text_label.setStyleSheet('font-weight: bold; font-size: 13px; color: palette(text);')
         layout.addWidget(text_label)
 
         # Text edit
@@ -68,7 +68,7 @@ class PostComposer(QWidget):
 
         # Image section
         img_label = QLabel('Image:')
-        img_label.setStyleSheet('font-weight: bold; font-size: 13px;')
+        img_label.setStyleSheet('font-weight: bold; font-size: 13px; color: palette(text);')
         layout.addWidget(img_label)
 
         img_row = QHBoxLayout()
