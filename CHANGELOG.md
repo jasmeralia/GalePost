@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.110] - 2026-02-20
-- Apply the app icon at startup and improve About icon diagnostics.
-- Move setup wizard title bar theming to show-time to avoid Win11 crashes.
-- Avoid showing modal dialogs inside Qt event exception handling.
+## [0.2.111] - 2026-02-20
+- Fix bundled resource lookup for frozen builds (icon.png now resolves correctly).
+- Skip title bar theming on the setup wizard to avoid Win11 access violations.
+- Include fatal/crash logs in log uploads and clear them via Help → Clear Logs.
+- Prefix fatal error logs with timestamps.
 
 ## [0.2.108] - 2026-02-20
 - Wire APP_ORG into app metadata and capture unhandled exceptions in logs.

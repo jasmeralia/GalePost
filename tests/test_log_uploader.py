@@ -55,6 +55,10 @@ def test_upload_success_includes_logs_and_screenshots(tmp_path, monkeypatch):
     current_log.write_text('current log')
     other_log = logs_dir / 'app_older.log'
     other_log.write_text('older log')
+    crash_log = logs_dir / 'crash_20260219_123456.log'
+    crash_log.write_text('crash log')
+    fatal_log = logs_dir / 'fatal_errors.log'
+    fatal_log.write_text('fatal log')
 
     screenshot = logs_dir / 'screenshots' / 'error_20240101.png'
     screenshot.write_bytes(b'pngdata')
@@ -85,6 +89,9 @@ def test_upload_success_includes_logs_and_screenshots(tmp_path, monkeypatch):
     assert len(payload['log_files']) >= 2
     assert len(payload['screenshots']) == 1
     assert payload['screenshots'][0]['filename'] == screenshot.name
+    filenames = {entry['filename'] for entry in payload['log_files']}
+    assert 'fatal_errors.log' in filenames
+    assert crash_log.name in filenames
 
     encoded = payload['log_files'][0]['content']
     assert base64.b64decode(encoded.encode('ascii'))

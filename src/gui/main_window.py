@@ -299,7 +299,10 @@ class MainWindow(QMainWindow):
 
         app = cast(QApplication | None, QApplication.instance())
         if app is not None:
-            apply_theme(app, dialog, self._config.theme_mode)
+            if isinstance(dialog, SetupWizard):
+                apply_theme(app, None, self._config.theme_mode)
+            else:
+                apply_theme(app, dialog, self._config.theme_mode)
 
     def _restore_geometry(self):
         geo = self._config.window_geometry
@@ -700,6 +703,15 @@ class MainWindow(QMainWindow):
         if current_log and current_log.exists():
             with contextlib.suppress(OSError):
                 current_log.unlink()
+                deleted += 1
+        for crash_log in logs_dir.glob('crash_*.log'):
+            with contextlib.suppress(OSError):
+                crash_log.unlink()
+                deleted += 1
+        fatal_log = logs_dir / 'fatal_errors.log'
+        if fatal_log.exists():
+            with contextlib.suppress(OSError):
+                fatal_log.unlink()
                 deleted += 1
 
         screenshots_dir = logs_dir / 'screenshots'

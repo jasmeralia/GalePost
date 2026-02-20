@@ -206,6 +206,24 @@ class LogUploader:
 
         # Also include the most recent other log file if present
         logs_dir = get_logs_dir()
+        fatal_log = logs_dir / 'fatal_errors.log'
+        if fatal_log.exists():
+            content = fatal_log.read_bytes()
+            log_files.append(
+                {
+                    'filename': fatal_log.name,
+                    'content': base64.b64encode(content).decode('ascii'),
+                }
+            )
+        crash_logs = sorted(logs_dir.glob('crash_*.log'), reverse=True)
+        for crash_log in crash_logs[:3]:
+            content = crash_log.read_bytes()
+            log_files.append(
+                {
+                    'filename': crash_log.name,
+                    'content': base64.b64encode(content).decode('ascii'),
+                }
+            )
         other_logs = sorted(logs_dir.glob('app_*.log'), reverse=True)
         for log_path in other_logs[:2]:
             if log_path != current_log:

@@ -46,6 +46,24 @@ _FAULT_LOG_FILE = None
 _FAULT_LOG_STACK = contextlib.ExitStack()
 
 
+class CrashLogWriter:
+    def __init__(self, file_handle):
+        self._file = file_handle
+        self._pending_timestamp = True
+
+    def write(self, text):
+        if self._pending_timestamp and (
+            'Windows fatal exception' in text or 'Fatal Python error' in text
+        ):
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            self._file.write(f'\n[{timestamp}] ')
+            self._pending_timestamp = False
+        self._file.write(text)
+
+    def flush(self):
+        self._file.flush()
+
+
 class GaleFlingApplication(QApplication):
     def notify(self, receiver, event):  # noqa: D401
         """Trap exceptions raised inside Qt events to ensure they are logged."""
@@ -137,9 +155,10 @@ def _enable_fault_handler():
         crash_dir = get_logs_dir()
         crash_dir.mkdir(parents=True, exist_ok=True)
         fault_path = crash_dir / 'fatal_errors.log'
-        _FAULT_LOG_FILE = _FAULT_LOG_STACK.enter_context(
+        raw_file = _FAULT_LOG_STACK.enter_context(
             open(fault_path, 'a', encoding='utf-8')  # noqa: SIM115
         )
+        _FAULT_LOG_FILE = CrashLogWriter(raw_file)
         faulthandler.enable(file=_FAULT_LOG_FILE, all_threads=True)
     except Exception:
         return

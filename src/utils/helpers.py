@@ -58,6 +58,9 @@ def get_resource_path(filename: str) -> Path:
         if not base_path:
             base_path = str(Path(__file__).resolve().parent.parent.parent / 'resources')
         base = Path(base_path)
+        resources_dir = base / 'resources'
+        if resources_dir.exists():
+            base = resources_dir
     else:
         base = Path(__file__).resolve().parent.parent.parent / 'resources'
     return base / filename

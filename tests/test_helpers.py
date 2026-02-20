@@ -50,10 +50,11 @@ def test_get_resource_path_non_frozen(tmp_path, monkeypatch):
 def test_get_resource_path_frozen(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, 'frozen', True, raising=False)
     monkeypatch.setattr(sys, '_MEIPASS', str(tmp_path), raising=False)
+    (tmp_path / 'resources').mkdir()
 
     resource = helpers.get_resource_path('icon.png')
 
-    assert resource == tmp_path / 'icon.png'
+    assert resource == tmp_path / 'resources' / 'icon.png'
 
 
 def test_get_os_info_windows_11(tmp_path, monkeypatch):
