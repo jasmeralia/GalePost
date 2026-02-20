@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.84] - 2026-02-20
+- Force Qt tests to run offscreen in CI to avoid headless crashes.
+
 ## [0.2.83] - 2026-02-20
 - Allow manually dispatching the release workflow against a specific tag.
 - Upload Codecov coverage only when a token is configured without invalid workflow syntax.
