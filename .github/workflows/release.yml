@@ -45,13 +45,21 @@ jobs:
         run: make test-cov
 
       - name: Upload coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: ${{ env.CODECOV_TOKEN != '' }}
         with:
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage.xml
           flags: unittests
           verbose: true
           fail_ci_if_error: false
+
+      - name: Upload test results
+        uses: codecov/test-results-action@v1
+        if: ${{ env.CODECOV_TOKEN != '' && !cancelled() }}
+        with:
+          token: ${{ env.CODECOV_TOKEN }}
+          files: junit.xml
 
   build:
     name: Build Windows Executable
