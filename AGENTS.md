@@ -13,6 +13,16 @@ Windows GUI application for posting to multiple social media platforms simultane
 
 ---
 
+## Release Checklist
+- Run `make lint` and confirm it passes.
+- Run `make test` (or `make test-cov` if releasing) and confirm it passes.
+- Bump version in `src/utils/constants.py`, `resources/default_config.json`, `build/installer.nsi`, `build/version_info.txt`, and `README.md`.
+- Update `CHANGELOG.md` with a new version entry at the top.
+- Commit with message `Release vX.Y.Z`.
+- Tag with `vX.Y.Z` and push tag and `master`.
+
+---
+
 ## Technology Stack
 
 ```
