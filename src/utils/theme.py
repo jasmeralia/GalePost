@@ -6,7 +6,7 @@ import sys
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt5.QtWidgets import QApplication, QWidget
 
 
 def windows_prefers_dark() -> bool:
@@ -51,7 +51,7 @@ def _apply_dark_palette(app: QApplication):
     app.setPalette(palette)
 
 
-def set_windows_dark_title_bar(window: QMainWindow, enabled: bool) -> None:
+def set_windows_dark_title_bar(window: QWidget, enabled: bool) -> None:
     if sys.platform != 'win32':
         return
     try:
@@ -78,7 +78,7 @@ def set_windows_dark_title_bar(window: QMainWindow, enabled: bool) -> None:
         return
 
 
-def apply_theme(app: QApplication, window: QMainWindow | None, mode: str) -> str:
+def apply_theme(app: QApplication, window: QWidget | None, mode: str) -> str:
     resolved = resolve_theme_mode(mode)
     use_dark = resolved == 'dark'
 

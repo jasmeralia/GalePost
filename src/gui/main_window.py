@@ -294,6 +294,13 @@ class MainWindow(QMainWindow):
         if app is not None:
             apply_theme(app, self, mode)
 
+    def _apply_dialog_theme(self, dialog: QDialog):
+        from typing import cast
+
+        app = cast(QApplication | None, QApplication.instance())
+        if app is not None:
+            apply_theme(app, dialog, self._config.theme_mode)
+
     def _restore_geometry(self):
         geo = self._config.window_geometry
         self.setGeometry(geo['x'], geo['y'], geo['width'], geo['height'])
@@ -323,6 +330,7 @@ class MainWindow(QMainWindow):
 
     def _show_setup_wizard(self):
         wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
+        self._apply_dialog_theme(wizard)
         wizard.exec_()
         self._refresh_platform_state()
 
@@ -544,6 +552,7 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage('Ready')
 
         dialog = ResultsDialog(results, self)
+        self._apply_dialog_theme(dialog)
         result_code = dialog.exec_()
 
         if dialog.send_logs_requested:
@@ -559,6 +568,7 @@ class MainWindow(QMainWindow):
 
     def _open_settings(self):
         dialog = SettingsDialog(self._config, self._auth_manager, self)
+        self._apply_dialog_theme(dialog)
         dialog.exec_()
         self._refresh_platform_state()
 
@@ -566,6 +576,7 @@ class MainWindow(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle(f'About {APP_NAME}')
         dialog.setMinimumWidth(420)
+        self._apply_dialog_theme(dialog)
 
         layout = QVBoxLayout(dialog)
 
@@ -668,6 +679,7 @@ class MainWindow(QMainWindow):
                 release_name=update.release_name,
                 release_notes=update.release_notes,
             )
+            self._apply_dialog_theme(dialog)
             if dialog.exec_() == dialog.Accepted:
                 self._download_update(update)
         else:
@@ -677,6 +689,7 @@ class MainWindow(QMainWindow):
 
     def _send_logs(self):
         dialog = LogSubmitDialog(self)
+        self._apply_dialog_theme(dialog)
         if dialog.exec_() != dialog.Accepted:
             return
 
