@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add coverage reporting in CI and badges in the README.
 - Move developer documentation to docs/CONTRIBUTING.md and simplify README for end users.
 
+## [0.2.80] - 2026-02-19
+- Add roadmap documentation and link docs from the README.
+
 ## [0.2.79] - 2026-02-19
 - Skip Codecov upload when no token is configured to avoid CI failures.
 
