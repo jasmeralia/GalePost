@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: make lint
+
+      - name: Test with coverage
+        run: make test-cov
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        if: ${{ env.CODECOV_TOKEN != '' }}
+        with:
+          files: coverage.xml
+          flags: unittests
+          verbose: true
+          fail_ci_if_error: false
