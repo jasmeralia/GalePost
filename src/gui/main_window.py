@@ -25,7 +25,6 @@ from PyQt5.QtWidgets import (
 
 from src.core.auth_manager import AuthManager
 from src.core.config_manager import ConfigManager
-from src.core.image_processor import process_image, validate_image
 from src.core.log_uploader import LogUploader
 from src.core.logger import get_current_log_path, get_logger, reset_log_file
 from src.core.update_checker import check_for_updates
@@ -349,9 +348,7 @@ class MainWindow(QMainWindow):
         image_path = self._composer.get_image_path()
         if image_path:
             selected_enabled = self._get_selected_enabled_platforms()
-            missing = [
-                platform for platform in selected_enabled if platform not in self._processed_images
-            ]
+            missing = self._get_missing_processed_platforms(selected_enabled)
             if missing:
                 self._show_image_preview(image_path, missing)
 
@@ -360,10 +357,20 @@ class MainWindow(QMainWindow):
         selected = self._platform_selector.get_selected()
         return [platform for platform in selected if platform in enabled]
 
+    def _get_missing_processed_platforms(self, platforms: list[str]) -> list[str]:
+        missing = []
+        for platform in platforms:
+            path = self._processed_images.get(platform)
+            if not path or not path.exists():
+                missing.append(platform)
+        return missing
+
     def _show_image_preview(self, image_path: Path, platforms: list[str]):
         dialog = ImagePreviewDialog(image_path, platforms, self)
         if dialog.exec_() == dialog.Accepted:
-            self._processed_images.update(dialog.get_processed_paths())
+            for platform, path in dialog.get_processed_paths().items():
+                if path and path.exists():
+                    self._processed_images[platform] = path
         elif dialog.had_errors:
             reply = QMessageBox.question(
                 self,
@@ -407,7 +414,7 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, 'Empty Post', 'Please enter some text before posting.')
             return
 
-        selected = self._platform_selector.get_selected()
+        selected = self._get_selected_enabled_platforms()
         if not selected:
             QMessageBox.warning(self, 'No Platforms', 'Please select at least one platform.')
             return
@@ -428,59 +435,18 @@ class MainWindow(QMainWindow):
 
         # Process images if needed
         image_path = self._composer.get_image_path()
-        if image_path and not self._processed_images:
-            # Process now if not already previewed
-            progress = QProgressDialog('Preparing images...', None, 0, 100, self)
-            progress.setWindowTitle('Processing Image')
-            progress.setWindowModality(Qt.ApplicationModal)
-            progress.setMinimumDuration(0)
-            progress.setAutoClose(True)
-            progress.setAutoReset(True)
-            logger = get_logger()
-            for name in selected:
-                platform = self._platforms.get(name)
-                if platform:
-                    specs = platform.get_specs()
-                    progress.setLabelText(f'Processing for {specs.platform_name}...')
-                    progress.setValue(0)
-                    QApplication.processEvents()
-                    error = validate_image(image_path, specs)
-                    if error:
-                        from src.core.error_handler import get_user_message
-
-                        QMessageBox.warning(
-                            self, 'Image Error', f'{specs.platform_name}: {get_user_message(error)}'
-                        )
-                        progress.cancel()
-                        return
-                    logger.debug(
-                        'Processing image for posting',
-                        extra={
-                            'platform': specs.platform_name,
-                            'image_path': str(image_path),
-                        },
+        if image_path:
+            missing = self._get_missing_processed_platforms(selected)
+            if missing:
+                self._show_image_preview(image_path, missing)
+                missing = self._get_missing_processed_platforms(selected)
+                if missing:
+                    QMessageBox.warning(
+                        self,
+                        'Image Error',
+                        'Image previews could not be generated for all selected platforms.',
                     )
-                    try:
-                        result = process_image(image_path, specs, progress_cb=progress.setValue)
-                    except Exception as exc:
-                        logger.exception(
-                            'Image processing failed during posting',
-                            extra={
-                                'platform': specs.platform_name,
-                                'image_path': str(image_path),
-                                'error': str(exc),
-                            },
-                        )
-                        QMessageBox.warning(
-                            self,
-                            'Image Error',
-                            f'{specs.platform_name}: Failed to process image.',
-                        )
-                        progress.cancel()
-                        return
-                    progress.setValue(100)
-                    self._processed_images[name] = result.path
-            progress.close()
+                    return
 
         # Build platform dict for selected only
         post_platforms = {n: self._platforms[n] for n in selected if n in self._platforms}
@@ -513,8 +479,7 @@ class MainWindow(QMainWindow):
         if all(r.success for r in results):
             self._clear_draft()
             self._composer.clear()
-
-        self._cleanup_processed_images()
+            self._cleanup_processed_images()
 
     def _open_settings(self):
         dialog = SettingsDialog(self._config, self._auth_manager, self)
@@ -646,10 +611,17 @@ class MainWindow(QMainWindow):
         if not text.strip() and not image_path:
             return
 
+        processed = {
+            name: str(path)
+            for name, path in self._processed_images.items()
+            if path and path.exists()
+        }
+
         draft = {
             'text': text,
             'image_path': str(image_path) if image_path else None,
             'selected_platforms': selected,
+            'processed_images': processed,
             'timestamp': datetime.now().isoformat(),
             'auto_saved': True,
         }
@@ -658,6 +630,7 @@ class MainWindow(QMainWindow):
         try:
             with open(draft_path, 'w') as f:
                 json.dump(draft, f, indent=2)
+            self._status_bar.showMessage('Draft auto-saved', 3000)
         except OSError:
             pass
 
@@ -697,6 +670,12 @@ class MainWindow(QMainWindow):
             platforms = draft.get('selected_platforms', [])
             if platforms:
                 self._platform_selector.set_selected(platforms)
+            restored = {}
+            for name, path in draft.get('processed_images', {}).items():
+                candidate = Path(path)
+                if candidate.exists():
+                    restored[name] = candidate
+            self._processed_images = restored
             self._refresh_platform_state()
         else:
             self._clear_draft()

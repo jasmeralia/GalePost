@@ -127,6 +127,118 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
     assert calls[-1] == ['bluesky']
 
 
+def test_resubmit_does_not_regenerate_preview_when_cached(qtbot, tmp_path, monkeypatch):
+    calls = []
+
+    def fake_preview(_image_path, platforms):
+        calls.append(list(platforms))
+
+    class DummyWorker:
+        def __init__(self, *_args, **_kwargs):
+            class _Signal:
+                def connect(self, *_a, **_k):
+                    return
+
+            self.finished = _Signal()
+
+        def start(self):
+            return
+
+    monkeypatch.setattr('src.gui.main_window.PostWorker', DummyWorker)
+
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    image_path = tmp_path / 'image.png'
+    image_path.write_bytes(b'fake')
+    processed_path = tmp_path / 'processed.png'
+    processed_path.write_bytes(b'processed')
+
+    window._show_image_preview = fake_preview
+    window._composer.set_image_path(image_path)
+    window._processed_images = {'twitter': processed_path}
+    window._composer.set_text('hello')
+
+    calls.clear()
+    window._do_post()
+
+    assert calls == []
+
+
+def test_auto_save_draft_persists_processed_images(qtbot, tmp_path, monkeypatch):
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    image_path = tmp_path / 'image.png'
+    image_path.write_bytes(b'fake')
+    processed_path = tmp_path / 'processed.png'
+    processed_path.write_bytes(b'processed')
+
+    window._show_image_preview = lambda *_args, **_kwargs: None
+    window._composer.set_text('hello')
+    window._composer.set_image_path(image_path)
+    window._processed_images = {'twitter': processed_path}
+
+    monkeypatch.setattr('src.gui.main_window.get_drafts_dir', lambda: tmp_path)
+
+    window._auto_save_draft()
+
+    draft_path = tmp_path / 'current_draft.json'
+    data = draft_path.read_text()
+    assert 'processed_images' in data
+    assert 'processed.png' in data
+
+
+def test_auto_save_shows_status_message(qtbot, tmp_path, monkeypatch):
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+    window._composer.set_text('hello')
+
+    monkeypatch.setattr('src.gui.main_window.get_drafts_dir', lambda: tmp_path)
+
+    window._auto_save_draft()
+
+    assert 'Draft auto-saved' in window.statusBar().currentMessage()
+
+
+def test_successful_post_clears_draft_and_processed_images(qtbot, tmp_path, monkeypatch):
+    class DummyDialog:
+        def __init__(self, *_args, **_kwargs):
+            self.send_logs_requested = False
+
+        def exec_(self):
+            return 0
+
+    monkeypatch.setattr('src.gui.main_window.ResultsDialog', DummyDialog)
+    monkeypatch.setattr('src.gui.main_window.get_drafts_dir', lambda: tmp_path)
+
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    image_path = tmp_path / 'image.png'
+    image_path.write_bytes(b'fake')
+    processed_path = tmp_path / 'processed.png'
+    processed_path.write_bytes(b'processed')
+    window._processed_images = {'twitter': processed_path}
+
+    window._show_image_preview = lambda *_args, **_kwargs: None
+    window._composer.set_text('hello')
+    window._composer.set_image_path(image_path)
+
+    draft_path = tmp_path / 'current_draft.json'
+    draft_path.write_text('{"text": "hello"}')
+
+    from src.utils.constants import PostResult
+
+    results = [PostResult(success=True, platform='Twitter')]
+    window._on_post_finished(results)
+
+    assert window._composer.get_text() == ''
+    assert window._composer.get_image_path() is None
+    assert not processed_path.exists()
+    assert not draft_path.exists()
+
+
 def test_main_window_single_platform_enabled(qtbot):
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
