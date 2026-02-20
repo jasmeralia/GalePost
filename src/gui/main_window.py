@@ -35,6 +35,7 @@ from src.gui.post_composer import PostComposer
 from src.gui.results_dialog import ResultsDialog
 from src.gui.settings_dialog import SettingsDialog
 from src.gui.setup_wizard import SetupWizard
+from src.gui.update_dialog import UpdateAvailableDialog
 from src.platforms.bluesky import BlueskyPlatform
 from src.platforms.twitter import TwitterPlatform
 from src.utils.constants import APP_NAME, APP_VERSION, PostResult
@@ -562,20 +563,16 @@ class MainWindow(QMainWindow):
         update = check_for_updates(self._config.allow_prerelease_updates)
         if update:
             release_label = 'beta' if update.is_prerelease else 'stable'
-            msg = QMessageBox(self)
-            msg.setWindowTitle('Update Available')
-            msg.setIcon(QMessageBox.Question)
-            msg.setText(
-                f'Version {update.latest_version} ({release_label}) is available.\n'
-                f"You're currently using {update.current_version}."
+            dialog = UpdateAvailableDialog(
+                self,
+                title='Update Available',
+                latest_version=update.latest_version,
+                current_version=update.current_version,
+                release_label=release_label,
+                release_name=update.release_name,
+                release_notes=update.release_notes,
             )
-            msg.setInformativeText(update.release_name)
-            if update.release_notes:
-                msg.setDetailedText(update.release_notes)
-            msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            msg.setDefaultButton(QMessageBox.Yes)
-            reply = msg.exec_()
-            if reply == QMessageBox.Yes:
+            if dialog.exec_() == dialog.Accepted:
                 self._download_update(update)
         else:
             QMessageBox.information(self, 'No Updates', "You're running the latest version!")
@@ -710,20 +707,16 @@ class MainWindow(QMainWindow):
             update = check_for_updates(self._config.allow_prerelease_updates)
             if update:
                 release_label = 'beta' if update.is_prerelease else 'stable'
-                msg = QMessageBox(self)
-                msg.setWindowTitle('Update Available!')
-                msg.setIcon(QMessageBox.Question)
-                msg.setText(
-                    f'Version {update.latest_version} ({release_label}) is now available.\n'
-                    f"You're currently using {update.current_version}."
+                dialog = UpdateAvailableDialog(
+                    self,
+                    title='Update Available!',
+                    latest_version=update.latest_version,
+                    current_version=update.current_version,
+                    release_label=release_label,
+                    release_name=update.release_name,
+                    release_notes=update.release_notes,
                 )
-                msg.setInformativeText(update.release_name)
-                if update.release_notes:
-                    msg.setDetailedText(update.release_notes)
-                msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No | QMessageBox.Ignore)
-                msg.setDefaultButton(QMessageBox.Yes)
-                reply = msg.exec_()
-                if reply == QMessageBox.Yes:
+                if dialog.exec_() == dialog.Accepted:
                     self._download_update(update)
 
     def _download_update(self, update):

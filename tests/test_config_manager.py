@@ -1,0 +1,20 @@
+from src.core.config_manager import DEFAULT_CONFIG, ConfigManager
+
+
+def test_config_manager_loads_defaults(tmp_path, monkeypatch):
+    monkeypatch.setattr('src.core.config_manager.get_app_data_dir', lambda: tmp_path)
+    manager = ConfigManager()
+    assert manager.get('theme_mode') == DEFAULT_CONFIG['theme_mode']
+    assert manager.window_geometry == DEFAULT_CONFIG['window_geometry']
+
+
+def test_config_manager_persists_changes(tmp_path, monkeypatch):
+    monkeypatch.setattr('src.core.config_manager.get_app_data_dir', lambda: tmp_path)
+    manager = ConfigManager()
+    manager.set('theme_mode', 'dark')
+
+    path = tmp_path / 'app_config.json'
+    assert path.exists()
+
+    manager2 = ConfigManager()
+    assert manager2.theme_mode == 'dark'

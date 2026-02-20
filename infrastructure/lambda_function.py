@@ -8,7 +8,7 @@ import base64
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 import boto3
 
@@ -69,7 +69,7 @@ def lambda_handler(event, context):
         )
 
     upload_id = str(uuid.uuid4())[:12]
-    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    timestamp = datetime.now(UTC).strftime('%Y%m%d_%H%M%S')
     app_version = body.get('app_version', 'unknown')
     error_code = body.get('error_code', 'MANUAL')
     user_notes = body.get('user_notes', '')
