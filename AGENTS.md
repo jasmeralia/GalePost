@@ -21,6 +21,7 @@ Windows GUI application for posting to multiple social media platforms simultane
 - Commit with message `Release vX.Y.Z`.
 - Tag with `vX.Y.Z` and push tag and `master`.
 - Always run the full checklist after making any changes unless explicitly instructed otherwise.
+- Any new menu options must add a log entry like `User selected <Menu> > <Action>`.
 
 ---
 

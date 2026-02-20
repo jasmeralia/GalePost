@@ -223,20 +223,35 @@ class MainWindow(QMainWindow):
 
     def _create_menu_bar(self):
         menu_bar = self.menuBar()
+        logger = get_logger()
+
+        def log_menu(label: str):
+            logger.info(f'User selected {label}')
+
+        def log_and_call(label: str, func):
+            def _handler():
+                log_menu(label)
+                func()
+
+            return _handler
 
         # File menu
         file_menu = menu_bar.addMenu('File')
         exit_action = QAction('Exit', self)
-        exit_action.triggered.connect(self.close)
+        exit_action.triggered.connect(log_and_call('File > Exit', self.close))
         file_menu.addAction(exit_action)
 
         # Settings menu
         settings_menu = menu_bar.addMenu('Settings')
         open_settings = QAction('Open Settings...', self)
-        open_settings.triggered.connect(self._open_settings)
+        open_settings.triggered.connect(
+            log_and_call('Settings > Open Settings...', self._open_settings)
+        )
         settings_menu.addAction(open_settings)
         run_setup = QAction('Run Setup Wizard...', self)
-        run_setup.triggered.connect(self._show_setup_wizard)
+        run_setup.triggered.connect(
+            log_and_call('Settings > Run Setup Wizard...', self._show_setup_wizard)
+        )
         settings_menu.addAction(run_setup)
 
         # View menu
@@ -245,17 +260,23 @@ class MainWindow(QMainWindow):
         theme_group.setExclusive(True)
 
         self._system_theme_action = QAction('System Default', self, checkable=True)
-        self._system_theme_action.triggered.connect(lambda: self._set_theme_mode('system'))
+        self._system_theme_action.triggered.connect(
+            log_and_call('View > System Default', lambda: self._set_theme_mode('system'))
+        )
         theme_group.addAction(self._system_theme_action)
         view_menu.addAction(self._system_theme_action)
 
         self._light_mode_action = QAction('Light Mode', self, checkable=True)
-        self._light_mode_action.triggered.connect(lambda: self._set_theme_mode('light'))
+        self._light_mode_action.triggered.connect(
+            log_and_call('View > Light Mode', lambda: self._set_theme_mode('light'))
+        )
         theme_group.addAction(self._light_mode_action)
         view_menu.addAction(self._light_mode_action)
 
         self._dark_mode_action = QAction('Dark Mode', self, checkable=True)
-        self._dark_mode_action.triggered.connect(lambda: self._set_theme_mode('dark'))
+        self._dark_mode_action.triggered.connect(
+            log_and_call('View > Dark Mode', lambda: self._set_theme_mode('dark'))
+        )
         theme_group.addAction(self._dark_mode_action)
         view_menu.addAction(self._dark_mode_action)
 
@@ -271,19 +292,21 @@ class MainWindow(QMainWindow):
         help_menu = menu_bar.addMenu('Help')
 
         about_action = QAction('About', self)
-        about_action.triggered.connect(self._show_about)
+        about_action.triggered.connect(log_and_call('Help > About', self._show_about))
         help_menu.addAction(about_action)
 
         check_update = QAction('Check for Updates', self)
-        check_update.triggered.connect(self._manual_update_check)
+        check_update.triggered.connect(
+            log_and_call('Help > Check for Updates', self._manual_update_check)
+        )
         help_menu.addAction(check_update)
 
         send_logs = QAction('Send Logs to Jas', self)
-        send_logs.triggered.connect(self._send_logs)
+        send_logs.triggered.connect(log_and_call('Help > Send Logs to Jas', self._send_logs))
         help_menu.addAction(send_logs)
 
         clear_logs = QAction('Clear Logs', self)
-        clear_logs.triggered.connect(self._clear_logs)
+        clear_logs.triggered.connect(log_and_call('Help > Clear Logs', self._clear_logs))
         help_menu.addAction(clear_logs)
 
     def _set_theme_mode(self, mode: str):
@@ -333,10 +356,17 @@ class MainWindow(QMainWindow):
 
     def _show_setup_wizard(self):
         try:
-            get_logger().info('Launching setup wizard')
+            self._append_fatal_marker('Launching setup wizard')
+            get_logger().info(
+                'Launching setup wizard',
+                extra={'theme_mode': self._config.theme_mode},
+            )
             wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
+            get_logger().info('Setup wizard created')
             self._apply_dialog_theme(wizard)
+            get_logger().info('Setup wizard theme applied')
             wizard.exec_()
+            get_logger().info('Setup wizard closed')
             self._refresh_platform_state()
         except Exception as exc:
             get_logger().exception('Failed to launch setup wizard', extra={'error': str(exc)})
@@ -725,6 +755,16 @@ class MainWindow(QMainWindow):
                 deleted += 1
 
         QMessageBox.information(self, 'Logs Cleared', f'Deleted {deleted} log file(s).')
+        get_logger().info('Logs cleared')
+
+    def _append_fatal_marker(self, label: str) -> None:
+        logs_dir = get_logs_dir()
+        marker_path = logs_dir / 'fatal_errors.log'
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        with contextlib.suppress(OSError):
+            marker_path.parent.mkdir(parents=True, exist_ok=True)
+            with marker_path.open('a', encoding='utf-8') as handle:
+                handle.write(f'\n[{timestamp}] {label}\n')
 
     def _manual_update_check(self):
         self._status_bar.showMessage('Checking for updates...')

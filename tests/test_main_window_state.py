@@ -52,6 +52,19 @@ class DummyMainWindow(MainWindow):
         return
 
 
+def _find_menu_action(window, menu_text, action_text):
+    for menu_action in window.menuBar().actions():
+        if menu_action.text() != menu_text:
+            continue
+        menu = menu_action.menu()
+        if menu is None:
+            continue
+        for action in menu.actions():
+            if action.text() == action_text:
+                return action
+    raise AssertionError(f'Action not found: {menu_text} > {action_text}')
+
+
 def test_main_window_no_credentials_disables_actions(qtbot):
     window = DummyMainWindow(
         DummyConfig(selected=['twitter', 'bluesky']), DummyAuthManager(False, False)
@@ -66,6 +79,26 @@ def test_main_window_no_credentials_disables_actions(qtbot):
     assert not window._post_btn.isEnabled()
     assert not window._test_btn.isEnabled()
     assert not window._composer._choose_btn.isEnabled()
+
+
+def test_menu_action_logging(qtbot, monkeypatch):
+    logged = []
+
+    class DummyLogger:
+        def info(self, message):
+            logged.append(message)
+
+    logger = DummyLogger()
+    monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
+    monkeypatch.setattr('src.gui.main_window.MainWindow._show_about', lambda _self: None)
+
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    action = _find_menu_action(window, 'Help', 'About')
+    action.trigger()
+
+    assert 'User selected Help > About' in logged
 
 
 def test_main_window_missing_usernames_disables_platforms(qtbot):

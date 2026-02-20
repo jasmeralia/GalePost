@@ -72,6 +72,11 @@ class CrashLogWriter:
     def isatty(self):
         return False
 
+    def write_marker(self, label: str) -> None:
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self._file.write(f'\n[{timestamp}] {label}\n')
+        self._file.flush()
+
 
 class GaleFlingApplication(QApplication):
     def notify(self, receiver, event):  # noqa: D401
@@ -168,7 +173,17 @@ def _enable_fault_handler():
             open(fault_path, 'a', encoding='utf-8')  # noqa: SIM115
         )
         _FAULT_LOG_FILE = CrashLogWriter(raw_file)
+        _FAULT_LOG_FILE.write_marker('Fatal error logging enabled')
         faulthandler.enable(file=_FAULT_LOG_FILE, all_threads=True)
+    except Exception:
+        return
+
+
+def _write_fatal_marker(label: str) -> None:
+    if _FAULT_LOG_FILE is None:
+        return
+    try:
+        _FAULT_LOG_FILE.write_marker(label)
     except Exception:
         return
 

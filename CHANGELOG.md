@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.113] - 2026-02-20
+- Add menu action logging and a log entry after clearing logs.
+- Add setup wizard debug instrumentation and fatal log markers.
+- Add menu logging test coverage and update AGENTS menu logging note.
+
 ## [0.2.112] - 2026-02-20
 - Center the About icon and improve log clearing for fatal crash logs.
 - Add file-handle compatibility to fatal crash logging.
