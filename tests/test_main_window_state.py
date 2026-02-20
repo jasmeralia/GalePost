@@ -420,9 +420,48 @@ def test_show_setup_wizard_logs_failure(qtbot, monkeypatch):
     window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
-    window._show_setup_wizard()
+    window._show_setup_wizard_impl()
 
     assert logger.logged
+
+
+def test_action_logging_for_post_and_connections(qtbot, monkeypatch, tmp_path):
+    logged = []
+
+    class DummyLogger:
+        def info(self, message, *args, **kwargs):
+            logged.append(message)
+
+        def exception(self, *_args, **_kwargs):
+            return
+
+    logger = DummyLogger()
+    monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
+    monkeypatch.setattr('src.gui.main_window.QMessageBox.warning', lambda *_a, **_k: None)
+    monkeypatch.setattr('src.gui.main_window.QMessageBox.information', lambda *_a, **_k: None)
+
+    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    qtbot.addWidget(window)
+
+    class DummyPlatform:
+        def test_connection(self):
+            return True, None
+
+    window._platforms['twitter'] = DummyPlatform()
+    window._platform_selector.set_selected(['twitter'])
+
+    window._test_connections()
+    assert 'User clicked Test Connections' in logged
+
+    window._composer.get_text = lambda: ''
+    window._do_post()
+    assert 'User clicked Post Now' in logged
+
+    window._platform_selector.set_selected([])
+    image_path = tmp_path / 'image.png'
+    image_path.write_bytes(b'fake')
+    window._on_image_changed(image_path)
+    assert any('User attached image' in message for message in logged)
 
 
 def test_main_window_single_platform_enabled(qtbot):

@@ -355,6 +355,9 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(100, self._show_setup_wizard)
 
     def _show_setup_wizard(self):
+        QTimer.singleShot(0, self._show_setup_wizard_impl)
+
+    def _show_setup_wizard_impl(self):
         try:
             self._append_fatal_marker('Launching setup wizard')
             get_logger().info(
@@ -362,12 +365,16 @@ class MainWindow(QMainWindow):
                 extra={'theme_mode': self._config.theme_mode},
             )
             wizard = SetupWizard(self._auth_manager, self._config.theme_mode, self)
+            self._append_fatal_marker('Setup wizard created')
             get_logger().info('Setup wizard created')
             self._apply_dialog_theme(wizard)
+            self._append_fatal_marker('Setup wizard theme applied')
             get_logger().info('Setup wizard theme applied')
-            wizard.exec_()
-            get_logger().info('Setup wizard closed')
-            self._refresh_platform_state()
+            self._setup_wizard = wizard
+            wizard.finished.connect(self._on_setup_wizard_finished)
+            self._append_fatal_marker('Setup wizard opening')
+            wizard.open()
+            get_logger().info('Setup wizard opened')
         except Exception as exc:
             get_logger().exception('Failed to launch setup wizard', extra={'error': str(exc)})
             QMessageBox.critical(
@@ -376,9 +383,15 @@ class MainWindow(QMainWindow):
                 'The setup wizard failed to open. Please send your logs to Jas for support.',
             )
 
+    def _on_setup_wizard_finished(self):
+        get_logger().info('Setup wizard closed')
+        self._setup_wizard = None
+        self._refresh_platform_state()
+
     def _on_image_changed(self, image_path):
         self._cleanup_processed_images()
         if image_path:
+            get_logger().info(f'User attached image: {image_path}')
             selected = self._get_selected_enabled_platforms()
             if selected:
                 self._show_image_preview(image_path, selected)
@@ -491,6 +504,7 @@ class MainWindow(QMainWindow):
                 self._send_logs()
 
     def _test_connections(self):
+        get_logger().info('User clicked Test Connections')
         self._status_bar.showMessage('Testing connections...')
         self._test_btn.setEnabled(False)
         QApplication.processEvents()
@@ -530,6 +544,7 @@ class MainWindow(QMainWindow):
         return name
 
     def _do_post(self):
+        get_logger().info('User clicked Post Now')
         text = self._composer.get_text()
         if not text.strip():
             QMessageBox.warning(self, 'Empty Post', 'Please enter some text before posting.')

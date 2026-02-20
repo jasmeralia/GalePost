@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (
 )
 
 from src.core.auth_manager import AuthManager
+from src.core.logger import get_logger
 from src.platforms.bluesky import BlueskyPlatform
 from src.platforms.twitter import TwitterPlatform
 from src.utils.theme import resolve_theme_mode
@@ -318,6 +319,8 @@ class SetupWizard(QWizard):
 
     def __init__(self, auth_manager: AuthManager, theme_mode: str = 'system', parent=None):
         super().__init__(parent)
+        logger = get_logger()
+        logger.info('Setup wizard init starting')
         self.setWindowTitle('GaleFling - Setup')
         self.setMinimumSize(550, 450)
         self._theme_mode = theme_mode
@@ -384,11 +387,13 @@ class SetupWizard(QWizard):
             self.setWizardStyle(QWizard.ModernStyle)
             self.setAutoFillBackground(True)
 
+        logger.info('Setup wizard adding pages')
         self.addPage(WelcomePage())
         self.addPage(TwitterSetupPage(auth_manager))
         self.addPage(BlueskySetupPage(auth_manager))
 
         self.setButtonText(QWizard.FinishButton, 'Finish')
+        logger.info('Setup wizard init complete')
 
     def showEvent(self, event):  # noqa: N802
         super().showEvent(event)
@@ -397,6 +402,7 @@ class SetupWizard(QWizard):
 
         # Force theme on Qt wizard chrome (header + button row) after widgets exist.
         resolved = resolve_theme_mode(self._theme_mode)
+        get_logger().info(f'Setup wizard showEvent theme={resolved}')
         header_bg = '#3c3c3c' if resolved == 'dark' else self._window_bg
         header_text = '#f0f0f0' if resolved == 'dark' else self._window_text
         for widget in self.findChildren(QWidget):
