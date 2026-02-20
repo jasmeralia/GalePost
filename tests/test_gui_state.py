@@ -26,8 +26,13 @@ def test_post_composer_counters_and_attach_button(qtbot):
 
     composer.set_platform_state([], ['twitter', 'bluesky'])
     assert not composer._choose_btn.isEnabled()
+    assert not composer._preview_btn.isEnabled()
     assert not composer._tw_counter.isVisible()
     assert not composer._bs_counter.isVisible()
+
+    composer.set_platform_state(['twitter'], ['twitter', 'bluesky'])
+    assert composer._choose_btn.isEnabled()
+    assert not composer._preview_btn.isEnabled()
 
 
 def test_theme_label_styles_follow_palette(qtbot):
@@ -54,3 +59,16 @@ def test_platform_selector_usernames(qtbot):
     selector.set_platform_username('bluesky', None)
     assert selector.get_platform_label('twitter') == 'Twitter'
     assert selector.get_platform_label('bluesky') == 'Bluesky'
+
+
+def test_preview_button_enabled_when_image_present(qtbot, tmp_path):
+    composer = PostComposer()
+    qtbot.addWidget(composer)
+
+    composer.set_platform_state(['twitter'], ['twitter'])
+    assert not composer._preview_btn.isEnabled()
+
+    image_path = tmp_path / 'image.png'
+    image_path.write_bytes(b'fake')
+    composer.set_image_path(image_path)
+    assert composer._preview_btn.isEnabled()

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.100] - 2026-02-20
+- Cache processed images across draft saves and resubmits.
+- Track enabled platforms in drafts and restore cached previews.
+- Add a Preview Images button that reuses cached variants.
+- Skip regenerating previews when cached images exist, and clean up after success.
+- Show a status message when drafts auto-save.
+- Add tests for preview caching, draft persistence, and preview reopen.
+
 ## [0.2.99] - 2026-02-20
 - Cache processed images across draft saves and resubmits.
 - Skip regenerating previews when cached images exist, and clean up after success.

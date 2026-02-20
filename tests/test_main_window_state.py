@@ -86,7 +86,7 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
     class PreviewDialog:
         Accepted = 1
 
-        def __init__(self, image_path, platforms, _parent=None):
+        def __init__(self, image_path, platforms, _parent=None, existing_paths=None):
             self._image_path = image_path
             self._platforms = list(platforms)
             self.had_errors = False
@@ -124,7 +124,7 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
     window._refresh_platform_state()
     window._platform_selector.set_selected(['twitter', 'bluesky'])
 
-    assert calls[-1] == ['bluesky']
+    assert calls[-1] == ['twitter', 'bluesky']
 
 
 def test_resubmit_does_not_regenerate_preview_when_cached(qtbot, tmp_path, monkeypatch):
@@ -187,6 +187,7 @@ def test_auto_save_draft_persists_processed_images(qtbot, tmp_path, monkeypatch)
     data = draft_path.read_text()
     assert 'processed_images' in data
     assert 'processed.png' in data
+    assert 'enabled_platforms' in data
 
 
 def test_auto_save_shows_status_message(qtbot, tmp_path, monkeypatch):

@@ -158,6 +158,7 @@ class MainWindow(QMainWindow):
         self._composer = PostComposer()
         self._composer.set_last_image_dir(self._config.last_image_directory)
         self._composer.image_changed.connect(self._on_image_changed)
+        self._composer.preview_requested.connect(self._on_preview_requested)
         layout.addWidget(self._composer)
 
         # Platform selector
@@ -309,7 +310,18 @@ class MainWindow(QMainWindow):
             selected = self._get_selected_enabled_platforms()
             if selected:
                 self._show_image_preview(image_path, selected)
+                self._auto_save_draft()
             self._config.last_image_directory = str(image_path.parent)
+
+    def _on_preview_requested(self):
+        image_path = self._composer.get_image_path()
+        if not image_path:
+            return
+        selected = self._get_selected_enabled_platforms()
+        if not selected:
+            return
+        self._show_image_preview(image_path, selected)
+        self._auto_save_draft()
 
     def _on_platforms_changed(self, platforms):
         self._config.last_selected_platforms = platforms
@@ -350,7 +362,8 @@ class MainWindow(QMainWindow):
             selected_enabled = self._get_selected_enabled_platforms()
             missing = self._get_missing_processed_platforms(selected_enabled)
             if missing:
-                self._show_image_preview(image_path, missing)
+                self._show_image_preview(image_path, selected_enabled)
+                self._auto_save_draft()
 
     def _get_selected_enabled_platforms(self) -> list[str]:
         enabled = set(self._platform_selector.get_enabled())
@@ -366,7 +379,9 @@ class MainWindow(QMainWindow):
         return missing
 
     def _show_image_preview(self, image_path: Path, platforms: list[str]):
-        dialog = ImagePreviewDialog(image_path, platforms, self)
+        dialog = ImagePreviewDialog(
+            image_path, platforms, self, existing_paths=self._processed_images
+        )
         if dialog.exec_() == dialog.Accepted:
             for platform, path in dialog.get_processed_paths().items():
                 if path and path.exists():
@@ -438,7 +453,7 @@ class MainWindow(QMainWindow):
         if image_path:
             missing = self._get_missing_processed_platforms(selected)
             if missing:
-                self._show_image_preview(image_path, missing)
+                self._show_image_preview(image_path, selected)
                 missing = self._get_missing_processed_platforms(selected)
                 if missing:
                     QMessageBox.warning(
@@ -607,6 +622,7 @@ class MainWindow(QMainWindow):
         text = self._composer.get_text()
         image_path = self._composer.get_image_path()
         selected = self._platform_selector.get_selected()
+        enabled = self._platform_selector.get_enabled()
 
         if not text.strip() and not image_path:
             return
@@ -621,6 +637,7 @@ class MainWindow(QMainWindow):
             'text': text,
             'image_path': str(image_path) if image_path else None,
             'selected_platforms': selected,
+            'enabled_platforms': enabled,
             'processed_images': processed,
             'timestamp': datetime.now().isoformat(),
             'auto_saved': True,

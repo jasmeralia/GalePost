@@ -34,12 +34,20 @@ class ImagePreviewTab(QWidget):
 
     preview_done = pyqtSignal(bool)
 
-    def __init__(self, image_path: Path, specs: PlatformSpecs, parent=None):
+    def __init__(
+        self,
+        image_path: Path,
+        specs: PlatformSpecs,
+        parent=None,
+        cached_path: Path | None = None,
+    ):
         super().__init__(parent)
         self._image_path = image_path
         self._specs = specs
         self._loaded = False
         self._result: ProcessedImage | None = None
+        self._cached_path = cached_path if cached_path and cached_path.exists() else None
+        self._result_path: Path | None = self._cached_path
         self._thread: QThread | None = None
         self._worker: _ImageProcessWorker | None = None
 
@@ -66,6 +74,9 @@ class ImagePreviewTab(QWidget):
     def load_preview(self):
         """Generate and display the preview (lazy loaded)."""
         if self._loaded:
+            return
+        if self._cached_path is not None:
+            self._load_cached()
             return
 
         self._loaded = True
@@ -98,6 +109,7 @@ class ImagePreviewTab(QWidget):
 
     def _on_preview_ready(self, result: ProcessedImage):
         self._result = result
+        self._result_path = result.path
 
         # Show thumbnail
         pixmap = QPixmap(str(result.path))
@@ -148,21 +160,50 @@ class ImagePreviewTab(QWidget):
         self.preview_done.emit(False)
 
     def get_processed_path(self) -> Path | None:
-        if self._result:
-            return self._result.path
+        if self._result_path:
+            return self._result_path
         return None
+
+    def _load_cached(self):
+        if not self._cached_path:
+            return
+        self._loaded = True
+        pixmap = QPixmap(str(self._cached_path))
+        if pixmap.width() > 400 or pixmap.height() > 400:
+            pixmap = pixmap.scaled(
+                400,
+                400,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        self._preview_label.setPixmap(pixmap)
+        proc = f'{pixmap.width()}x{pixmap.height()}'
+        proc_size = _format_size(self._cached_path.stat().st_size)
+        self._details_label.setText(
+            f'<b>Cached:</b> {proc} ({proc_size})<br>'
+            f'<b>Format:</b> {self._cached_path.suffix.lstrip(".").upper()}'
+        )
+        self._status_label.setText(f'Cached preview for {self._specs.platform_name}')
+        self._progress.setValue(100)
 
 
 class ImagePreviewDialog(QDialog):
     """Tabbed dialog showing per-platform image previews."""
 
-    def __init__(self, image_path: Path, platforms: list[str], parent=None):
+    def __init__(
+        self,
+        image_path: Path,
+        platforms: list[str],
+        parent=None,
+        existing_paths: dict[str, Path | None] | None = None,
+    ):
         super().__init__(parent)
         self._image_path = image_path
         self._tabs: dict[str, ImagePreviewTab] = {}
         self._processed_paths: dict[str, Path | None] = {}
         self._had_errors = False
         self._pending_tabs = 0
+        self._existing_paths = existing_paths or {}
 
         self.setWindowTitle('Image Resize Preview')
         self.setMinimumSize(550, 600)
@@ -189,7 +230,8 @@ class ImagePreviewDialog(QDialog):
         for platform in platforms:
             specs = specs_map.get(platform)
             if specs:
-                tab = ImagePreviewTab(image_path, specs, self)
+                cached_path = self._existing_paths.get(platform)
+                tab = ImagePreviewTab(image_path, specs, self, cached_path=cached_path)
                 self._tabs[platform] = tab
                 self._tab_widget.addTab(tab, specs.platform_name)
 
@@ -218,12 +260,18 @@ class ImagePreviewDialog(QDialog):
         layout.addLayout(btn_layout)
 
         # Load all tabs and enable OK when complete
-        self._pending_tabs = len(self._tabs)
+        self._pending_tabs = 0
         for tab in self._tabs.values():
-            tab.preview_done.connect(self._on_tab_done)
-            tab.load_preview()
+            if tab.get_processed_path() is None:
+                tab.preview_done.connect(self._on_tab_done)
+                self._pending_tabs += 1
+                tab.load_preview()
+            else:
+                tab.load_preview()
         if not self._tabs:
             self._ok_btn.setEnabled(True)
+        else:
+            self._refresh_ok_state()
 
     def _on_tab_changed(self, index: int):
         widget = self._tab_widget.widget(index)

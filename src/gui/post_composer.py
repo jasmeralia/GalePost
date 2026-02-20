@@ -22,6 +22,7 @@ class PostComposer(QWidget):
 
     text_changed = pyqtSignal(str)
     image_changed = pyqtSignal(object)  # Path or None
+    preview_requested = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -76,6 +77,11 @@ class PostComposer(QWidget):
         self._choose_btn.clicked.connect(self._choose_image)
         img_row.addWidget(self._choose_btn)
 
+        self._preview_btn = QPushButton('Preview Images')
+        self._preview_btn.setEnabled(False)
+        self._preview_btn.clicked.connect(self.preview_requested.emit)
+        img_row.addWidget(self._preview_btn)
+
         self._clear_btn = QPushButton('Clear')
         self._clear_btn.clicked.connect(self._clear_image)
         self._clear_btn.setEnabled(False)
@@ -93,7 +99,9 @@ class PostComposer(QWidget):
     def set_platform_state(self, selected: list[str], enabled: list[str]):
         self._selected_platforms = set(selected)
         self._enabled_platforms = set(enabled)
-        self._choose_btn.setEnabled(bool(self._enabled_platforms and self._selected_platforms))
+        has_targets = bool(self._enabled_platforms and self._selected_platforms)
+        self._choose_btn.setEnabled(has_targets)
+        self._preview_btn.setEnabled(bool(self._image_path and has_targets))
         self._update_counters()
 
     def _on_text_changed(self):
@@ -149,12 +157,14 @@ class PostComposer(QWidget):
             self._last_image_dir = str(self._image_path.parent)
             self._set_image_label(f'{self._image_path.name}', is_placeholder=False)
             self._clear_btn.setEnabled(True)
+            self._preview_btn.setEnabled(bool(self._selected_platforms and self._enabled_platforms))
             self.image_changed.emit(self._image_path)
 
     def _clear_image(self):
         self._image_path = None
         self._set_image_label('No image selected', is_placeholder=True)
         self._clear_btn.setEnabled(False)
+        self._preview_btn.setEnabled(False)
         self.image_changed.emit(None)
 
     def get_text(self) -> str:
@@ -171,6 +181,7 @@ class PostComposer(QWidget):
             self._image_path = path
             self._set_image_label(f'{path.name}', is_placeholder=False)
             self._clear_btn.setEnabled(True)
+            self._preview_btn.setEnabled(bool(self._selected_platforms and self._enabled_platforms))
             self.image_changed.emit(path)
         else:
             self._clear_image()
