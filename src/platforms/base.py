@@ -9,6 +9,19 @@ from src.utils.constants import PlatformSpecs, PostResult
 class BasePlatform(ABC):
     """All platforms must implement this interface."""
 
+    _account_id: str = ''
+    _profile_name: str = ''
+
+    @property
+    def account_id(self) -> str:
+        """Unique identifier for this account (e.g. 'twitter_1')."""
+        return self._account_id
+
+    @property
+    def profile_name(self) -> str:
+        """User-assigned display name (e.g. 'rinthemodel')."""
+        return self._profile_name
+
     @abstractmethod
     def authenticate(self) -> tuple[bool, str | None]:
         """Authenticate with platform. Returns (success, error_code)."""

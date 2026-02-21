@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QDialogButtonBox, QTextBrowser
+from PyQt6.QtWidgets import QDialogButtonBox, QTextBrowser
 
 from src.gui.update_dialog import UpdateAvailableDialog
 
@@ -36,6 +36,6 @@ def test_update_dialog_download_button_label(qtbot):
 
     buttons = dialog.findChild(QDialogButtonBox)
     assert buttons is not None
-    yes_button = buttons.button(QDialogButtonBox.Yes)
+    yes_button = buttons.button(QDialogButtonBox.StandardButton.Yes)
     assert yes_button is not None
     assert yes_button.text() == 'Download and Install'

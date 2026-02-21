@@ -129,3 +129,11 @@ class ConfigManager:
     @property
     def draft_interval(self) -> int:
         return self._config.get('draft_auto_save_interval_seconds', 30)
+
+    @property
+    def last_selected_accounts(self) -> list[str]:
+        return self._config.get('last_selected_accounts', [])
+
+    @last_selected_accounts.setter
+    def last_selected_accounts(self, value: list[str]):
+        self.set('last_selected_accounts', value)

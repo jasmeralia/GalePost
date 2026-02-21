@@ -7,11 +7,9 @@ from datetime import datetime
 from pathlib import Path
 
 import requests
-from PyQt5.QtCore import QProcess, Qt, QThread, QTimer, pyqtSignal
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
-    QAction,
-    QActionGroup,
+from PyQt6.QtCore import QProcess, Qt, QThread, QTimer, pyqtSignal
+from PyQt6.QtGui import QAction, QActionGroup, QPixmap
+from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFrame,
@@ -39,7 +37,14 @@ from src.gui.results_dialog import ResultsDialog
 from src.gui.settings_dialog import SettingsDialog
 from src.gui.setup_wizard import SetupWizard
 from src.gui.update_dialog import UpdateAvailableDialog
+from src.gui.webview_panel import WebViewPanel
+from src.platforms.base_webview import BaseWebViewPlatform
 from src.platforms.bluesky import BlueskyPlatform
+from src.platforms.fansly import FanslyPlatform
+from src.platforms.fetlife import FetLifePlatform
+from src.platforms.instagram import InstagramPlatform
+from src.platforms.onlyfans import OnlyFansPlatform
+from src.platforms.snapchat import SnapchatPlatform
 from src.platforms.twitter import TwitterPlatform
 from src.utils.constants import APP_NAME, APP_VERSION, PostResult
 from src.utils.helpers import get_drafts_dir, get_logs_dir, get_resource_path
@@ -142,22 +147,60 @@ class MainWindow(QMainWindow):
         self._log_uploader = LogUploader(config)
         self._processed_images: dict[str, Path | None] = {}
 
-        self._platforms = {
-            'twitter': TwitterPlatform(auth_manager),
-            'bluesky': BlueskyPlatform(auth_manager),
-            'bluesky_alt': BlueskyPlatform(auth_manager, account_key='alt'),
-        }
-        self._platform_groups = {
-            'twitter': 'twitter',
-            'bluesky': 'bluesky',
-            'bluesky_alt': 'bluesky',
-        }
+        self._platforms: dict = {}
+        self._platform_groups: dict[str, str] = {}
+        self._refreshing = False
+        self._pending_webview_platforms: list = []
+        self._pending_text: str = ''
+        self._pending_image_path = None
+        self._build_platforms()
 
         self._init_ui()
         self._restore_geometry()
         self._setup_draft_timer()
         self._check_first_run()
         self._refresh_platform_state()
+
+    # ── Platform factory ───────────────────────────────────────────
+
+    _PLATFORM_FACTORIES = {
+        'twitter': lambda am, aid, pn: TwitterPlatform(am, account_id=aid, profile_name=pn),
+        'bluesky': lambda am, aid, pn: BlueskyPlatform(am, account_id=aid, profile_name=pn),
+        'instagram': lambda am, aid, pn: InstagramPlatform(am, account_id=aid, profile_name=pn),
+        'snapchat': lambda am, aid, pn: SnapchatPlatform(account_id=aid, profile_name=pn),
+        'onlyfans': lambda am, aid, pn: OnlyFansPlatform(account_id=aid, profile_name=pn),
+        'fansly': lambda am, aid, pn: FanslyPlatform(account_id=aid, profile_name=pn),
+        'fetlife': lambda am, aid, pn: FetLifePlatform(account_id=aid, profile_name=pn),
+    }
+
+    def _build_platforms(self):
+        """Build platform instances from configured accounts."""
+        self._platforms.clear()
+        self._platform_groups.clear()
+
+        accounts = self._auth_manager.get_accounts()
+
+        # Fall back to Phase 0 hardcoded platforms if no accounts configured
+        if not accounts:
+            self._platforms = {
+                'twitter': TwitterPlatform(self._auth_manager),
+                'bluesky': BlueskyPlatform(self._auth_manager),
+                'bluesky_alt': BlueskyPlatform(self._auth_manager, account_key='alt'),
+            }
+            self._platform_groups = {
+                'twitter': 'twitter',
+                'bluesky': 'bluesky',
+                'bluesky_alt': 'bluesky',
+            }
+            return
+
+        for account in accounts:
+            factory = self._PLATFORM_FACTORIES.get(account.platform_id)
+            if not factory:
+                continue
+            platform = factory(self._auth_manager, account.account_id, account.profile_name)
+            self._platforms[account.account_id] = platform
+            self._platform_groups[account.account_id] = account.platform_id
 
     def _init_ui(self):
         self.setWindowTitle(f'{APP_NAME} v{APP_VERSION}')
@@ -187,7 +230,7 @@ class MainWindow(QMainWindow):
 
         # Separator
         sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
+        sep.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(sep)
 
         # Buttons
@@ -344,11 +387,8 @@ class MainWindow(QMainWindow):
             self._draft_timer.start(self._config.draft_interval * 1000)
 
     def _check_first_run(self):
-        if (
-            not self._auth_manager.has_twitter_auth()
-            and not self._auth_manager.has_bluesky_auth()
-            and not self._auth_manager.has_bluesky_auth_alt()
-        ):
+        accounts = self._auth_manager.get_accounts()
+        if not accounts:
             QTimer.singleShot(100, self._show_setup_wizard)
 
     def _show_setup_wizard(self):
@@ -379,7 +419,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'Setup Wizard Error',
                 'The setup wizard failed to open. Please send your logs to Jas for support.',
-                QMessageBox.Critical,
+                QMessageBox.Icon.Critical,
             )
 
     def _on_setup_wizard_finished(self):
@@ -409,33 +449,60 @@ class MainWindow(QMainWindow):
 
     def _on_platforms_changed(self, platforms):
         self._config.last_selected_platforms = platforms
-        self._refresh_platform_state()
+        if not self._refreshing:
+            self._refresh_platform_state()
 
     def _refresh_platform_state(self):
+        if self._refreshing:
+            return
+        self._refreshing = True
+        try:
+            self._refresh_platform_state_impl()
+        finally:
+            self._refreshing = False
+
+    def _refresh_platform_state_impl(self):
+        # Rebuild platforms and selector from current accounts
+        self._build_platforms()
+        accounts = self._auth_manager.get_accounts()
+        self._platform_selector.set_accounts(accounts)
+
+        # Build the account->platform_id map for the composer
+        account_platform_map = {a.account_id: a.platform_id for a in accounts}
+        self._composer.set_account_platform_map(account_platform_map)
+
+        # Determine which accounts have valid credentials
         enabled = []
-        tw_creds = self._auth_manager.get_twitter_auth()
-        bs_creds = self._auth_manager.get_bluesky_auth()
-        bs_alt_creds = self._auth_manager.get_bluesky_auth_alt()
+        for account in accounts:
+            platform = self._platforms.get(account.account_id)
+            if not platform:
+                continue
+            # For API platforms, check credentials exist
+            if isinstance(platform, BaseWebViewPlatform):
+                # WebView platforms are always "enabled" if configured
+                enabled.append(account.account_id)
+            else:
+                creds = self._auth_manager.get_account_credentials(account.account_id)
+                if creds:
+                    enabled.append(account.account_id)
+                else:
+                    # Fall back to legacy auth checks
+                    if account.platform_id == 'twitter' and self._auth_manager.has_twitter_auth():
+                        enabled.append(account.account_id)
+                    elif account.platform_id == 'bluesky':
+                        if account.account_id == 'bluesky_alt':
+                            if self._auth_manager.has_bluesky_auth_alt():
+                                enabled.append(account.account_id)
+                        elif self._auth_manager.has_bluesky_auth():
+                            enabled.append(account.account_id)
 
-        if tw_creds and tw_creds.get('username'):
-            enabled.append('twitter')
-        if bs_creds and bs_creds.get('identifier'):
-            enabled.append('bluesky')
-        if bs_alt_creds and bs_alt_creds.get('identifier'):
-            enabled.append('bluesky_alt')
+        for account in accounts:
+            is_enabled = account.account_id in enabled
+            self._platform_selector.set_platform_enabled(account.account_id, is_enabled)
 
-        self._platform_selector.set_platform_enabled('twitter', 'twitter' in enabled)
-        self._platform_selector.set_platform_enabled('bluesky', 'bluesky' in enabled)
-        self._platform_selector.set_platform_enabled('bluesky_alt', 'bluesky_alt' in enabled)
-        self._platform_selector.set_platform_username(
-            'twitter', tw_creds.get('username') if tw_creds else None
-        )
-        self._platform_selector.set_platform_username(
-            'bluesky', bs_creds.get('identifier') if bs_creds else None
-        )
-        self._platform_selector.set_platform_username(
-            'bluesky_alt', bs_alt_creds.get('identifier') if bs_alt_creds else None
-        )
+        # Restore previous selection
+        saved = self._config.last_selected_platforms
+        self._platform_selector.set_selected(saved)
 
         selected = self._platform_selector.get_selected()
         self._composer.set_platform_state(selected, enabled)
@@ -487,7 +554,7 @@ class MainWindow(QMainWindow):
             seen.add(group)
             groups.append(group)
         dialog = ImagePreviewDialog(image_path, groups, self, existing_paths=self._processed_images)
-        if dialog.exec_() == dialog.Accepted:
+        if dialog.exec() == dialog.Accepted:
             for platform, path in dialog.get_processed_paths().items():
                 if path and path.exists():
                     self._processed_images[platform] = path
@@ -496,11 +563,11 @@ class MainWindow(QMainWindow):
                 'Image Processing Failed',
                 'One or more image previews failed to process.\n\n'
                 'Would you like to send logs to Jas?',
-                QMessageBox.Question,
-                buttons=QMessageBox.Yes | QMessageBox.No,
-                default=QMessageBox.No,
+                QMessageBox.Icon.Question,
+                buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                default=QMessageBox.StandardButton.No,
             )
-            if reply == QMessageBox.Yes:
+            if reply == QMessageBox.StandardButton.Yes:
                 self._send_logs()
 
     def _test_connections(self):
@@ -527,21 +594,17 @@ class MainWindow(QMainWindow):
             else:
                 msg_parts.append(f'\u274c\ufe0f {pname} failed to connect: {error}')
 
-        self._show_message_box('Connection Test', '\n'.join(msg_parts), QMessageBox.Information)
+        self._show_message_box(
+            'Connection Test', '\n'.join(msg_parts), QMessageBox.Icon.Information
+        )
         self._test_btn.setEnabled(True)
         self._status_bar.showMessage('Ready')
 
-    def _get_platform_display_name(self, name: str) -> str:
-        if name == 'twitter':
-            creds = self._auth_manager.get_twitter_auth() or {}
-            return PlatformSelector._format_platform_label('Twitter', creds.get('username'))
-        if name == 'bluesky_alt':
-            creds = self._auth_manager.get_bluesky_auth_alt() or {}
-            return PlatformSelector._format_platform_label('Bluesky', creds.get('identifier'))
-        if name == 'bluesky':
-            creds = self._auth_manager.get_bluesky_auth() or {}
-            return PlatformSelector._format_platform_label('Bluesky', creds.get('identifier'))
-        return name
+    def _get_platform_display_name(self, account_id: str) -> str:
+        platform = self._platforms.get(account_id)
+        if platform:
+            return platform.get_platform_name()
+        return account_id
 
     def _do_post(self):
         get_logger().info('User clicked Post Now')
@@ -550,7 +613,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'Empty Post',
                 'Please enter some text before posting.',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 
@@ -559,7 +622,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'No Platforms',
                 'Please select at least one platform.',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 
@@ -573,7 +636,7 @@ class MainWindow(QMainWindow):
                         'Text Too Long',
                         f'Your post is {len(text)} characters, but '
                         f'{specs.platform_name} allows {specs.max_text_length}.',
-                        QMessageBox.Warning,
+                        QMessageBox.Icon.Warning,
                     )
                     return
 
@@ -588,12 +651,21 @@ class MainWindow(QMainWindow):
                     self._show_message_box(
                         'Image Error',
                         'Image previews could not be generated for all selected platforms.',
-                        QMessageBox.Warning,
+                        QMessageBox.Icon.Warning,
                     )
                     return
 
-        # Build platform dict for selected only
-        post_platforms = {n: self._platforms[n] for n in selected if n in self._platforms}
+        # Split into API platforms and WebView platforms
+        api_platforms = {}
+        webview_platforms = []
+        for name in selected:
+            platform = self._platforms.get(name)
+            if not platform:
+                continue
+            if isinstance(platform, BaseWebViewPlatform):
+                webview_platforms.append(platform)
+            else:
+                api_platforms[name] = platform
 
         # Disable UI during posting
         self._post_btn.setEnabled(False)
@@ -601,24 +673,53 @@ class MainWindow(QMainWindow):
         self._status_bar.showMessage('Posting...')
         QApplication.processEvents()
 
-        # Post in background thread
-        self._worker = PostWorker(
-            post_platforms,
-            text,
-            self._processed_images,
-            self._platform_groups,
-        )
-        self._worker.finished.connect(self._on_post_finished)
-        self._worker.start()
+        # Store WebView platforms for after API posting completes
+        self._pending_webview_platforms = webview_platforms
+        self._pending_text = text
+        self._pending_image_path = image_path
 
-    def _on_post_finished(self, results: list[PostResult]):
+        if api_platforms:
+            # Post API platforms in background thread
+            self._worker = PostWorker(
+                api_platforms,
+                text,
+                self._processed_images,
+                self._platform_groups,
+            )
+            self._worker.finished.connect(self._on_api_post_finished)
+            self._worker.start()
+        else:
+            # No API platforms — go directly to WebView panel
+            self._on_api_post_finished([])
+
+    def _on_api_post_finished(self, api_results: list[PostResult]):
+        webview_platforms = self._pending_webview_platforms
+        self._pending_webview_platforms = []
+
+        if webview_platforms:
+            # Prepare each WebView platform with text + image
+            for platform in webview_platforms:
+                platform.prepare_post(self._pending_text, self._pending_image_path)
+
+            # Open WebView panel
+            self._status_bar.showMessage('Opening WebView panel...')
+            panel = WebViewPanel(api_results, webview_platforms, self)
+            self._apply_dialog_theme(panel)
+            panel.exec()
+
+            # Collect WebView results
+            wv_results = panel.get_results()
+            all_results = api_results + wv_results
+        else:
+            all_results = api_results
+
         self._post_btn.setEnabled(True)
         self._test_btn.setEnabled(True)
         self._status_bar.showMessage('Ready')
 
-        dialog = ResultsDialog(results, self)
+        dialog = ResultsDialog(all_results, self)
         self._apply_dialog_theme(dialog)
-        result_code = dialog.exec_()
+        result_code = dialog.exec()
 
         if dialog.send_logs_requested:
             self._send_logs()
@@ -626,7 +727,7 @@ class MainWindow(QMainWindow):
             self._open_settings()
 
         # Clear draft on full success
-        if all(r.success for r in results):
+        if all(r.success for r in all_results):
             self._clear_draft()
             self._composer.clear()
             self._cleanup_processed_images()
@@ -634,7 +735,7 @@ class MainWindow(QMainWindow):
     def _open_settings(self):
         dialog = SettingsDialog(self._config, self._auth_manager, self)
         self._apply_dialog_theme(dialog)
-        dialog.exec_()
+        dialog.exec()
         self._refresh_platform_state()
 
     def _show_about(self):
@@ -703,13 +804,13 @@ class MainWindow(QMainWindow):
         layout.addWidget(icon_label, alignment=Qt.AlignmentFlag.AlignHCenter)
 
         body = QLabel(
-            'Post to Twitter and Bluesky simultaneously.<br><br>'
+            'Post to Twitter, Bluesky, Instagram, and more simultaneously.<br><br>'
             'Copyright \u00a9 2026 '
             '<a href="https://x.com/jasmeralia">Morgan Blackthorne</a>, '
             '<a href="https://discord.gg/Seyngsh5MF">Winds of Storm</a><br>'
             'Licensed under the MIT License<br><br>'
             '<b>Built with:</b><br>'
-            'PyQt5 \u2013 GUI framework<br>'
+            'PyQt6 \u2013 GUI framework<br>'
             'Tweepy \u2013 Twitter API client<br>'
             'atproto \u2013 Bluesky AT Protocol SDK<br>'
             'Pillow \u2013 Image processing<br>'
@@ -729,17 +830,17 @@ class MainWindow(QMainWindow):
         close_row.addWidget(close_btn)
         layout.addLayout(close_row)
 
-        dialog.exec_()
+        dialog.exec()
 
     def _clear_logs(self):
         reply = self._show_message_box(
             'Clear Logs',
             'This will delete saved logs and screenshots. Continue?',
-            QMessageBox.Question,
-            buttons=QMessageBox.Yes | QMessageBox.No,
-            default=QMessageBox.No,
+            QMessageBox.Icon.Question,
+            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            default=QMessageBox.StandardButton.No,
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         logs_dir = get_logs_dir()
@@ -781,7 +882,7 @@ class MainWindow(QMainWindow):
         self._show_message_box(
             'Logs Cleared',
             f'Deleted {deleted} log file(s).',
-            QMessageBox.Information,
+            QMessageBox.Icon.Information,
         )
         get_logger().info('Logs cleared')
 
@@ -800,7 +901,7 @@ class MainWindow(QMainWindow):
         text: str,
         icon: QMessageBox.Icon,
         *,
-        buttons: QMessageBox.StandardButtons = QMessageBox.Ok,
+        buttons=QMessageBox.StandardButton.Ok,
         default: QMessageBox.StandardButton | None = None,
     ) -> QMessageBox.StandardButton:
         from typing import cast
@@ -813,7 +914,7 @@ class MainWindow(QMainWindow):
         if default is not None:
             msg.setDefaultButton(default)
         self._apply_dialog_theme(msg)
-        return cast(QMessageBox.StandardButton, msg.exec_())
+        return cast(QMessageBox.StandardButton, msg.exec())
 
     def _manual_update_check(self):
         self._status_bar.showMessage('Checking for updates...')
@@ -832,13 +933,13 @@ class MainWindow(QMainWindow):
                 release_notes=update.release_notes,
             )
             self._apply_dialog_theme(dialog)
-            if dialog.exec_() == dialog.Accepted:
+            if dialog.exec() == dialog.Accepted:
                 self._download_update(update)
         else:
             self._show_message_box(
                 'No Updates',
                 "You're running the latest version!",
-                QMessageBox.Information,
+                QMessageBox.Icon.Information,
             )
 
         self._status_bar.showMessage('Ready')
@@ -846,7 +947,7 @@ class MainWindow(QMainWindow):
     def _send_logs(self):
         dialog = LogSubmitDialog(self)
         self._apply_dialog_theme(dialog)
-        if dialog.exec_() != dialog.Accepted:
+        if dialog.exec() != dialog.Accepted:
             return
 
         notes = dialog.get_notes()
@@ -854,7 +955,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'Missing Description',
                 'Please describe what you were doing before sending logs.',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 
@@ -863,19 +964,19 @@ class MainWindow(QMainWindow):
 
         success, message, details = self._log_uploader.upload(user_notes=notes)
         if success:
-            self._show_message_box('Logs Sent', message, QMessageBox.Information)
+            self._show_message_box('Logs Sent', message, QMessageBox.Icon.Information)
         else:
             msg = QMessageBox(self)
             msg.setWindowTitle('Upload Failed')
-            msg.setIcon(QMessageBox.Warning)
+            msg.setIcon(QMessageBox.Icon.Warning)
             msg.setText(message)
             msg.setInformativeText(
                 'You can copy the error details and send them in a private message.'
             )
-            copy_btn = msg.addButton('Copy Error Details', QMessageBox.ActionRole)
-            msg.addButton('Close', QMessageBox.AcceptRole)
+            copy_btn = msg.addButton('Copy Error Details', QMessageBox.ButtonRole.ActionRole)
+            msg.addButton('Close', QMessageBox.ButtonRole.AcceptRole)
             self._apply_dialog_theme(msg)
-            msg.exec_()
+            msg.exec()
             if msg.clickedButton() == copy_btn:
                 QApplication.clipboard().setText(details)
 
@@ -938,12 +1039,12 @@ class MainWindow(QMainWindow):
         reply = self._show_message_box(
             'Unsaved Draft Found',
             f'You have an unsaved draft:\n\n"{text_preview}..."\n\nWould you like to restore it?',
-            QMessageBox.Question,
-            buttons=QMessageBox.Yes | QMessageBox.No,
-            default=QMessageBox.Yes,
+            QMessageBox.Icon.Question,
+            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            default=QMessageBox.StandardButton.Yes,
         )
 
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self._composer.set_text(draft.get('text', ''))
             image_path = draft.get('image_path')
             if image_path:
@@ -984,7 +1085,7 @@ class MainWindow(QMainWindow):
                     release_notes=update.release_notes,
                 )
                 self._apply_dialog_theme(dialog)
-                if dialog.exec_() == dialog.Accepted:
+                if dialog.exec() == dialog.Accepted:
                     self._download_update(update)
 
     def _download_update(self, update):
@@ -992,7 +1093,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'No Installer Found',
                 'No installer asset was found for this release.',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 
@@ -1003,7 +1104,7 @@ class MainWindow(QMainWindow):
 
         progress = QProgressDialog('Downloading update...', None, 0, 100, self)
         progress.setWindowTitle('Downloading Update')
-        progress.setWindowModality(Qt.ApplicationModal)
+        progress.setWindowModality(Qt.WindowModality.ApplicationModal)
         progress.setMinimumDuration(0)
         progress.setAutoClose(True)
         progress.setAutoReset(True)
@@ -1019,14 +1120,14 @@ class MainWindow(QMainWindow):
             lambda ok, path, msg: self._on_update_downloaded(ok, path, msg)
         )
         self._update_worker.start()
-        progress.exec_()
+        progress.exec()
 
     def _on_update_downloaded(self, success: bool, path: Path | None, message: str):
         if not success:
             self._show_message_box(
                 'Download Failed',
                 f'Failed to download the installer.\n{message}',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 
@@ -1034,7 +1135,7 @@ class MainWindow(QMainWindow):
             self._show_message_box(
                 'Download Failed',
                 'Installer download completed without a valid path.',
-                QMessageBox.Warning,
+                QMessageBox.Icon.Warning,
             )
             return
 

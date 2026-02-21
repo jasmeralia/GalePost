@@ -1,7 +1,7 @@
 """First-run setup wizard for credential configuration."""
 
-from PyQt5.QtGui import QPalette
-from PyQt5.QtWidgets import (
+from PyQt6.QtGui import QPalette
+from PyQt6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -17,6 +17,7 @@ from src.core.auth_manager import AuthManager
 from src.core.logger import get_logger
 from src.platforms.bluesky import BlueskyPlatform
 from src.platforms.twitter import TwitterPlatform
+from src.utils.constants import AccountConfig
 
 
 class WelcomePage(QWizardPage):
@@ -31,10 +32,10 @@ class WelcomePage(QWizardPage):
         layout.addSpacing(20)
 
         intro = QLabel(
-            "Let's get you set up to post to Twitter and Bluesky!\n\n"
-            "We'll need your account credentials for each platform.\n"
-            "Don't worry - they're stored securely on your computer.\n\n"
-            'This should only take a minute.'
+            "Let's get you set up to post to your social media accounts!\n\n"
+            "We'll walk through each platform step by step.\n"
+            "Credentials are stored securely on your computer.\n\n"
+            'You can skip any platform you don\'t use.'
         )
         intro.setWordWrap(True)
         intro.setStyleSheet('font-size: 13px; line-height: 1.5;')
@@ -52,7 +53,7 @@ class TwitterSetupPage(QWizardPage):
         self.setAutoFillBackground(True)
 
         self.setTitle('Setup - Twitter')
-        self.setSubTitle('Step 1 of 2 - Twitter API Credentials')
+        self.setSubTitle('Twitter API Credentials')
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
@@ -66,7 +67,7 @@ class TwitterSetupPage(QWizardPage):
         form.addRow('API Key:', self._api_key)
 
         self._api_secret = QLineEdit()
-        self._api_secret.setEchoMode(QLineEdit.Password)
+        self._api_secret.setEchoMode(QLineEdit.EchoMode.Password)
         self._api_secret.setPlaceholderText('Enter your API secret')
         form.addRow('API Secret:', self._api_secret)
 
@@ -75,7 +76,7 @@ class TwitterSetupPage(QWizardPage):
         form.addRow('Access Token:', self._access_token)
 
         self._access_secret = QLineEdit()
-        self._access_secret.setEchoMode(QLineEdit.Password)
+        self._access_secret.setEchoMode(QLineEdit.EchoMode.Password)
         self._access_secret.setPlaceholderText('Enter your access token secret')
         form.addRow('Access Token Secret:', self._access_secret)
 
@@ -143,7 +144,7 @@ class BlueskySetupPage(QWizardPage):
         self.setAutoFillBackground(True)
 
         self.setTitle('Setup - Bluesky')
-        self.setSubTitle('Step 2 of 2 - Bluesky Account')
+        self.setSubTitle('Bluesky Account')
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
@@ -169,12 +170,12 @@ class BlueskySetupPage(QWizardPage):
         form.addRow('Username (handle):', self._identifier)
 
         hint = QLabel('Example: yourname.bsky.social')
-        muted = self.palette().color(QPalette.Disabled, QPalette.Text).name()
+        muted = self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text).name()
         hint.setStyleSheet(f'color: {muted}; font-size: 11px;')
         form.addRow('', hint)
 
         self._app_password = QLineEdit()
-        self._app_password.setEchoMode(QLineEdit.Password)
+        self._app_password.setEchoMode(QLineEdit.EchoMode.Password)
         self._app_password.setPlaceholderText('xxxx-xxxx-xxxx-xxxx')
         form.addRow('App Password:', self._app_password)
 
@@ -193,7 +194,7 @@ class BlueskySetupPage(QWizardPage):
         form.addRow('', hint_alt)
 
         self._app_password_alt = QLineEdit()
-        self._app_password_alt.setEchoMode(QLineEdit.Password)
+        self._app_password_alt.setEchoMode(QLineEdit.EchoMode.Password)
         self._app_password_alt.setPlaceholderText('xxxx-xxxx-xxxx-xxxx')
         form.addRow('App Password:', self._app_password_alt)
 
@@ -310,6 +311,144 @@ class BlueskySetupPage(QWizardPage):
         return True
 
 
+class InstagramSetupPage(QWizardPage):
+    """Instagram Graph API credentials setup."""
+
+    def __init__(self, auth_manager: AuthManager, parent=None):
+        super().__init__(parent)
+        self._auth_manager = auth_manager
+        self.setAutoFillBackground(True)
+
+        self.setTitle('Setup - Instagram')
+        self.setSubTitle('Instagram Graph API (requires Business/Creator account)')
+
+        layout = QVBoxLayout(self)
+
+        info = QLabel(
+            'Instagram posting requires a <b>Business</b> or <b>Creator</b> account '
+            'linked to a Facebook Page. You will need:<br>'
+            '<ul>'
+            '<li>A long-lived access token from the Graph API</li>'
+            '<li>Your Instagram User ID</li>'
+            '<li>Your linked Facebook Page ID</li>'
+            '</ul>'
+            '<i>Skip this step if you don\'t have an Instagram Business account.</i>'
+        )
+        info.setOpenExternalLinks(True)
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        layout.addSpacing(8)
+
+        form = QFormLayout()
+
+        self._profile_name = QLineEdit()
+        self._profile_name.setPlaceholderText('e.g. rinthemodel')
+        form.addRow('Profile Name:', self._profile_name)
+
+        self._access_token = QLineEdit()
+        self._access_token.setEchoMode(QLineEdit.EchoMode.Password)
+        self._access_token.setPlaceholderText('Long-lived access token')
+        form.addRow('Access Token:', self._access_token)
+
+        self._ig_user_id = QLineEdit()
+        self._ig_user_id.setPlaceholderText('e.g. 17841400000')
+        form.addRow('IG User ID:', self._ig_user_id)
+
+        self._page_id = QLineEdit()
+        self._page_id.setPlaceholderText('e.g. 100000000000')
+        form.addRow('Facebook Page ID:', self._page_id)
+
+        layout.addLayout(form)
+        layout.addStretch()
+
+        # Pre-fill
+        existing = self._auth_manager.get_account_credentials('instagram_1')
+        if existing:
+            self._profile_name.setText(existing.get('profile_name', ''))
+            self._access_token.setText(existing.get('access_token', ''))
+            self._ig_user_id.setText(existing.get('ig_user_id', ''))
+            self._page_id.setText(existing.get('page_id', ''))
+
+    def validatePage(self) -> bool:  # noqa: N802
+        token = self._access_token.text().strip()
+        uid = self._ig_user_id.text().strip()
+        page_id = self._page_id.text().strip()
+        name = self._profile_name.text().strip()
+
+        if token and uid:
+            self._auth_manager.save_account_credentials('instagram_1', {
+                'access_token': token,
+                'ig_user_id': uid,
+                'page_id': page_id,
+                'profile_name': name,
+            })
+            self._auth_manager.add_account(AccountConfig(
+                platform_id='instagram',
+                account_id='instagram_1',
+                profile_name=name,
+            ))
+        return True
+
+
+class WebViewPlatformSetupPage(QWizardPage):
+    """Generic setup page for WebView-based platforms.
+
+    The user enters a profile name; login happens when they first post.
+    """
+
+    def __init__(
+        self,
+        auth_manager: AuthManager,
+        platform_id: str,
+        platform_name: str,
+        account_id: str,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self._auth_manager = auth_manager
+        self._platform_id = platform_id
+        self._account_id = account_id
+        self.setAutoFillBackground(True)
+
+        self.setTitle(f'Setup - {platform_name}')
+        self.setSubTitle(f'{platform_name} Account')
+
+        layout = QVBoxLayout(self)
+
+        info = QLabel(
+            f'{platform_name} uses an <b>embedded browser</b> for posting. '
+            f'You will log in when you first post — your session cookies '
+            f'are stored locally on your computer.<br><br>'
+            f'Enter a profile name below so you can identify this account, '
+            f'or leave blank to skip.'
+        )
+        info.setWordWrap(True)
+        layout.addWidget(info)
+        layout.addSpacing(8)
+
+        form = QFormLayout()
+        self._profile_name = QLineEdit()
+        self._profile_name.setPlaceholderText(f'{platform_name} username')
+        form.addRow('Profile Name:', self._profile_name)
+        layout.addLayout(form)
+        layout.addStretch()
+
+        # Pre-fill
+        existing = self._auth_manager.get_account(account_id)
+        if existing:
+            self._profile_name.setText(existing.profile_name)
+
+    def validatePage(self) -> bool:  # noqa: N802
+        name = self._profile_name.text().strip()
+        if name:
+            self._auth_manager.add_account(AccountConfig(
+                platform_id=self._platform_id,
+                account_id=self._account_id,
+                profile_name=name,
+            ))
+        return True
+
+
 class SetupWizard(QWizard):
     """First-run setup wizard."""
 
@@ -318,15 +457,27 @@ class SetupWizard(QWizard):
         logger = get_logger()
         logger.info('Setup wizard init starting')
         self.setWindowTitle('GaleFling - Setup')
-        self.setMinimumSize(550, 450)
+        self.setMinimumSize(600, 500)
         self._theme_mode = theme_mode
-        self.setWizardStyle(QWizard.ModernStyle)
+        self.setWizardStyle(QWizard.WizardStyle.ModernStyle)
         self.setAutoFillBackground(True)
 
         logger.info('Setup wizard adding pages')
         self.addPage(WelcomePage())
         self.addPage(TwitterSetupPage(auth_manager))
         self.addPage(BlueskySetupPage(auth_manager))
+        self.addPage(InstagramSetupPage(auth_manager))
 
-        self.setButtonText(QWizard.FinishButton, 'Finish')
+        # WebView platforms
+        for platform_id, platform_name, account_id in [
+            ('snapchat', 'Snapchat', 'snapchat_1'),
+            ('onlyfans', 'OnlyFans', 'onlyfans_1'),
+            ('fansly', 'Fansly', 'fansly_1'),
+            ('fetlife', 'FetLife', 'fetlife_1'),
+        ]:
+            self.addPage(WebViewPlatformSetupPage(
+                auth_manager, platform_id, platform_name, account_id,
+            ))
+
+        self.setButtonText(QWizard.WizardButton.FinishButton, 'Finish')
         logger.info('Setup wizard init complete')

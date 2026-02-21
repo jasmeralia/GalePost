@@ -1,6 +1,6 @@
 """Update available dialog with release notes."""
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -53,11 +53,13 @@ class UpdateAvailableDialog(QDialog):
             notes.setPlainText('No release notes were provided.')
         layout.addWidget(notes)
 
-        buttons = QDialogButtonBox(QDialogButtonBox.Yes | QDialogButtonBox.No)
-        yes_button = buttons.button(QDialogButtonBox.Yes)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Yes | QDialogButtonBox.StandardButton.No
+        )
+        yes_button = buttons.button(QDialogButtonBox.StandardButton.Yes)
         if yes_button is not None:
             yes_button.setText('Download and Install')
-        no_button = buttons.button(QDialogButtonBox.No)
+        no_button = buttons.button(QDialogButtonBox.StandardButton.No)
         if no_button is not None:
             no_button.setText('Later')
         buttons.accepted.connect(self.accept)

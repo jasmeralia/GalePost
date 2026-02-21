@@ -2,9 +2,31 @@ from types import SimpleNamespace
 
 import src.gui.main_window as main_window
 from src.gui.main_window import MainWindow
+from src.utils.constants import AccountConfig
 
 
 class DummyAuthManager:
+    def get_accounts(self):
+        return [
+            AccountConfig(platform_id='twitter', account_id='twitter_1', profile_name='user'),
+            AccountConfig(platform_id='bluesky', account_id='bluesky_1', profile_name='user.bsky.social'),
+        ]
+
+    def get_account(self, account_id):
+        for a in self.get_accounts():
+            if a.account_id == account_id:
+                return a
+        return None
+
+    def get_account_credentials(self, account_id):
+        return None
+
+    def get_twitter_app_credentials(self):
+        return None
+
+    def get_accounts_for_platform(self, platform_id):
+        return [a for a in self.get_accounts() if a.platform_id == platform_id]
+
     def has_twitter_auth(self):
         return True
 
@@ -26,7 +48,7 @@ class DummyAuthManager:
 
 class DummyConfig:
     def __init__(self):
-        self.last_selected_platforms = ['twitter', 'bluesky']
+        self.last_selected_platforms = ['twitter_1', 'bluesky_1']
         self.last_image_directory = ''
         self.auto_save_draft = False
         self.draft_interval = 30
@@ -78,7 +100,7 @@ def test_update_dialog_labels_beta(qtbot, monkeypatch):
         def __init__(self, _parent, **kwargs):
             captured['label'] = kwargs['release_label']
 
-        def exec_(self):
+        def exec(self):
             return 0
 
     monkeypatch.setattr(main_window, 'UpdateAvailableDialog', DummyDialog)
@@ -113,7 +135,7 @@ def test_update_dialog_labels_stable(qtbot, monkeypatch):
         def __init__(self, _parent, **kwargs):
             captured['label'] = kwargs['release_label']
 
-        def exec_(self):
+        def exec(self):
             return 0
 
     monkeypatch.setattr(main_window, 'UpdateAvailableDialog', DummyDialog)

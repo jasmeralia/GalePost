@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt5.QtWidgets import QApplication, QMainWindow
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 import src.utils.theme as theme
 

@@ -25,6 +25,8 @@ a = Analysis(
         'PIL',
         'tweepy',
         'atproto',
+        'PyQt6.QtWebEngineWidgets',
+        'PyQt6.QtWebEngineCore',
     ],
     hookspath=[],
     hooksconfig={},

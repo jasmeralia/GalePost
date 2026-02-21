@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from PyQt5.QtCore import QObject, Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import QObject, Qt, QThread, pyqtSignal
+from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import (
     QDialog,
     QHBoxLayout,
     QLabel,
@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import (
 
 from src.core.image_processor import ProcessedImage, process_image
 from src.core.logger import get_logger
-from src.utils.constants import BLUESKY_SPECS, TWITTER_SPECS, PlatformSpecs
+from src.utils.constants import PLATFORM_SPECS_MAP, PlatformSpecs
 
 
 def _format_size(size_bytes: int) -> str:
@@ -222,13 +222,8 @@ class ImagePreviewDialog(QDialog):
         self._tab_widget = QTabWidget()
         self._tab_widget.currentChanged.connect(self._on_tab_changed)
 
-        specs_map = {
-            'twitter': TWITTER_SPECS,
-            'bluesky': BLUESKY_SPECS,
-        }
-
         for platform in platforms:
-            specs = specs_map.get(platform)
+            specs = PLATFORM_SPECS_MAP.get(platform)
             if specs:
                 cached_path = self._existing_paths.get(platform)
                 tab = ImagePreviewTab(image_path, specs, self, cached_path=cached_path)

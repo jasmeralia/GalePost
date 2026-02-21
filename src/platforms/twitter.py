@@ -15,19 +15,44 @@ from src.utils.constants import TWITTER_SPECS, PlatformSpecs, PostResult
 class TwitterPlatform(BasePlatform):
     """Twitter posting via Tweepy (OAuth 1.0a + v2 API)."""
 
-    def __init__(self, auth_manager: AuthManager):
+    def __init__(
+        self,
+        auth_manager: AuthManager,
+        account_id: str = 'twitter_1',
+        profile_name: str = '',
+    ):
         self._auth_manager = auth_manager
+        self._account_id = account_id
+        self._profile_name = profile_name
         self._client: Any | None = None
         self._api_v1: Any | None = None
 
     def get_platform_name(self) -> str:
+        if self._profile_name:
+            return f'Twitter ({self._profile_name})'
         return 'Twitter'
 
     def get_specs(self) -> PlatformSpecs:
         return TWITTER_SPECS
 
+    def _get_credentials(self) -> dict[str, str] | None:
+        """Load credentials: app creds + per-account tokens."""
+        app_creds = self._auth_manager.get_twitter_app_credentials()
+        if not app_creds:
+            # Fall back to Phase 0 combined format
+            return self._auth_manager.get_twitter_auth()
+
+        account_creds = self._auth_manager.get_account_credentials(self._account_id)
+        if account_creds and all(
+            k in account_creds for k in ('access_token', 'access_token_secret')
+        ):
+            return {**app_creds, **account_creds}
+
+        # Fall back to Phase 0 format for backward compat
+        return self._auth_manager.get_twitter_auth()
+
     def authenticate(self) -> tuple[bool, str | None]:
-        creds = self._auth_manager.get_twitter_auth()
+        creds = self._get_credentials()
         if not creds:
             return False, 'AUTH-MISSING'
 
@@ -115,6 +140,9 @@ class TwitterPlatform(BasePlatform):
                     platform='Twitter',
                     post_url=post_url,
                     raw_response=dict(response.data),
+                    account_id=self._account_id,
+                    profile_name=self._profile_name,
+                    url_captured=True,
                 )
             return create_error_result('POST-FAILED', 'Twitter')
 
@@ -128,3 +156,16 @@ class TwitterPlatform(BasePlatform):
             return create_error_result('POST-FAILED', 'Twitter', exception=e)
         except Exception as e:
             return create_error_result('POST-FAILED', 'Twitter', exception=e)
+
+    @staticmethod
+    def start_pin_flow(api_key: str, api_secret: str) -> tuple[tweepy.OAuth1UserHandler, str]:
+        """Start the OAuth PIN flow. Returns (auth_handler, authorization_url)."""
+        auth = tweepy.OAuth1UserHandler(api_key, api_secret, callback='oob')
+        url = auth.get_authorization_url()
+        return auth, url
+
+    @staticmethod
+    def complete_pin_flow(auth: tweepy.OAuth1UserHandler, pin: str) -> tuple[str, str]:
+        """Complete PIN flow. Returns (access_token, access_token_secret)."""
+        auth.get_access_token(verifier=pin)
+        return auth.access_token, auth.access_token_secret

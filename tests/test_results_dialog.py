@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from PyQt5.QtWidgets import QApplication, QLabel, QPushButton
+from PyQt6.QtWidgets import QApplication, QLabel, QPushButton
 
 from src.gui.results_dialog import ResultsDialog
 from src.utils.constants import PostResult

@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QMessageBox
+from PyQt6.QtWidgets import QMessageBox
 
 from src.gui.main_window import MainWindow
+from src.utils.constants import AccountConfig
 
 
 class DummyAuthManager:
@@ -9,6 +10,45 @@ class DummyAuthManager:
         self._bluesky = bluesky
         self._bluesky_alt = bluesky_alt
 
+    # Phase 1 account-based API
+    def get_accounts(self) -> list[AccountConfig]:
+        accounts = []
+        if self._twitter:
+            accounts.append(
+                AccountConfig(
+                    platform_id='twitter',
+                    account_id='twitter_1',
+                    profile_name='jasmeralia',
+                )
+            )
+        if self._bluesky:
+            accounts.append(
+                AccountConfig(
+                    platform_id='bluesky',
+                    account_id='bluesky_1',
+                    profile_name='jasmeralia.bsky.social',
+                )
+            )
+        if self._bluesky_alt:
+            accounts.append(
+                AccountConfig(
+                    platform_id='bluesky',
+                    account_id='bluesky_alt',
+                    profile_name='alt.bsky.social',
+                )
+            )
+        return accounts
+
+    def get_account(self, account_id):
+        for a in self.get_accounts():
+            if a.account_id == account_id:
+                return a
+        return None
+
+    def get_account_credentials(self, account_id):
+        return None
+
+    # Phase 0 backward compat
     def has_twitter_auth(self) -> bool:
         return self._twitter
 
@@ -26,6 +66,12 @@ class DummyAuthManager:
 
     def get_bluesky_auth_alt(self):
         return {'identifier': 'alt.bsky.social'} if self._bluesky_alt else None
+
+    def get_twitter_app_credentials(self):
+        return None
+
+    def get_accounts_for_platform(self, platform_id):
+        return [a for a in self.get_accounts() if a.platform_id == platform_id]
 
 
 class DummyConfig:
@@ -69,15 +115,12 @@ def _find_menu_action(window, menu_text, action_text):
 
 def test_main_window_no_credentials_disables_actions(qtbot):
     window = DummyMainWindow(
-        DummyConfig(selected=['twitter', 'bluesky']), DummyAuthManager(False, False)
+        DummyConfig(selected=['twitter_1', 'bluesky_1']), DummyAuthManager(False, False)
     )
     qtbot.addWidget(window)
 
     assert window._platform_selector.get_enabled() == []
     assert window._platform_selector.get_selected() == []
-    assert window._platform_selector.get_platform_label('twitter') == 'Twitter'
-    assert window._platform_selector.get_platform_label('bluesky') == 'Bluesky'
-    assert window._platform_selector.get_platform_label('bluesky_alt') == 'Bluesky'
     assert not window._post_btn.isEnabled()
     assert not window._test_btn.isEnabled()
     assert not window._composer._choose_btn.isEnabled()
@@ -94,7 +137,7 @@ def test_menu_action_logging(qtbot, monkeypatch):
     monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
     monkeypatch.setattr('src.gui.main_window.MainWindow._show_about', lambda _self: None)
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     action = _find_menu_action(window, 'Help', 'About')
@@ -117,6 +160,8 @@ def test_manual_update_check_no_updates_applies_theme(qtbot, monkeypatch):
             'DummyMessageBox',
             (),
             {
+                'Icon': QMessageBox.Icon,
+                'StandardButton': QMessageBox.StandardButton,
                 'Ok': 0,
                 'Information': 1,
                 'Warning': 2,
@@ -124,19 +169,18 @@ def test_manual_update_check_no_updates_applies_theme(qtbot, monkeypatch):
                 'Yes': 4,
                 'No': 5,
                 'StandardButtons': int,
-                'StandardButton': int,
                 '__init__': lambda *_a, **_k: None,
                 'setWindowTitle': lambda *_a, **_k: None,
                 'setText': lambda *_a, **_k: None,
                 'setIcon': lambda *_a, **_k: None,
                 'setStandardButtons': lambda *_a, **_k: None,
                 'setDefaultButton': lambda *_a, **_k: None,
-                'exec_': lambda *_a, **_k: 0,
+                'exec': lambda *_a, **_k: 0,
             },
         ),
     )
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     window._manual_update_check()
@@ -145,18 +189,9 @@ def test_manual_update_check_no_updates_applies_theme(qtbot, monkeypatch):
 
 
 def test_main_window_missing_usernames_disables_platforms(qtbot):
-    class UsernameMissingAuth(DummyAuthManager):
-        def get_twitter_auth(self):
-            return {'api_key': 'x', 'username': ''} if self._twitter else None
-
-        def get_bluesky_auth(self):
-            return {'identifier': ''} if self._bluesky else None
-
-        def get_bluesky_auth_alt(self):
-            return {'identifier': ''} if self._bluesky_alt else None
-
+    # With no accounts returned, nothing is enabled
     window = DummyMainWindow(
-        DummyConfig(selected=['twitter', 'bluesky']), UsernameMissingAuth(True, True)
+        DummyConfig(selected=['twitter_1', 'bluesky_1']), DummyAuthManager(False, False)
     )
     qtbot.addWidget(window)
 
@@ -179,7 +214,7 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
             self.had_errors = False
             calls.append(self._platforms)
 
-        def exec_(self):
+        def exec(self):
             return self.Accepted
 
         def get_processed_paths(self):
@@ -198,7 +233,7 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
             self._bluesky = True
 
     auth = ToggleAuth()
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), auth)
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), auth)
     qtbot.addWidget(window)
 
     image_path = tmp_path / 'image.png'
@@ -209,7 +244,7 @@ def test_image_preview_opens_for_newly_enabled_platform(qtbot, tmp_path, monkeyp
 
     auth.enable_bluesky()
     window._refresh_platform_state()
-    window._platform_selector.set_selected(['twitter', 'bluesky'])
+    window._platform_selector.set_selected(['twitter_1', 'bluesky_1'])
 
     assert calls[-1] == ['twitter', 'bluesky']
 
@@ -233,7 +268,7 @@ def test_resubmit_does_not_regenerate_preview_when_cached(qtbot, tmp_path, monke
 
     monkeypatch.setattr('src.gui.main_window.PostWorker', DummyWorker)
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     image_path = tmp_path / 'image.png'
@@ -253,7 +288,7 @@ def test_resubmit_does_not_regenerate_preview_when_cached(qtbot, tmp_path, monke
 
 
 def test_auto_save_draft_persists_processed_images(qtbot, tmp_path, monkeypatch):
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     image_path = tmp_path / 'image.png'
@@ -278,7 +313,7 @@ def test_auto_save_draft_persists_processed_images(qtbot, tmp_path, monkeypatch)
 
 
 def test_auto_save_shows_status_message(qtbot, tmp_path, monkeypatch):
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
     window._composer.set_text('hello')
 
@@ -294,13 +329,13 @@ def test_successful_post_clears_draft_and_processed_images(qtbot, tmp_path, monk
         def __init__(self, *_args, **_kwargs):
             self.send_logs_requested = False
 
-        def exec_(self):
+        def exec(self):
             return 0
 
     monkeypatch.setattr('src.gui.main_window.ResultsDialog', DummyDialog)
     monkeypatch.setattr('src.gui.main_window.get_drafts_dir', lambda: tmp_path)
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     image_path = tmp_path / 'image.png'
@@ -319,7 +354,7 @@ def test_successful_post_clears_draft_and_processed_images(qtbot, tmp_path, monk
     from src.utils.constants import PostResult
 
     results = [PostResult(success=True, platform='Twitter')]
-    window._on_post_finished(results)
+    window._on_api_post_finished(results)
 
     assert window._composer.get_text() == ''
     assert window._composer.get_image_path() is None
@@ -329,35 +364,39 @@ def test_successful_post_clears_draft_and_processed_images(qtbot, tmp_path, monk
 
 def test_missing_processed_platforms_dedupes_bluesky(qtbot):
     window = DummyMainWindow(
-        DummyConfig(selected=['bluesky', 'bluesky_alt']),
+        DummyConfig(selected=['bluesky_1', 'bluesky_alt']),
         DummyAuthManager(False, True, True),
     )
     qtbot.addWidget(window)
 
-    missing = window._get_missing_processed_platforms(['bluesky', 'bluesky_alt'])
+    missing = window._get_missing_processed_platforms(['bluesky_1', 'bluesky_alt'])
 
     assert missing == ['bluesky']
 
 
 def test_test_connections_message_includes_usernames(qtbot, monkeypatch):
     class DummyPlatform:
-        def __init__(self, success, error=None):
+        def __init__(self, success, error=None, name=''):
             self._success = success
             self._error = error
+            self._name = name
 
         def test_connection(self):
             return self._success, self._error
 
+        def get_platform_name(self):
+            return self._name
+
     window = DummyMainWindow(
-        DummyConfig(selected=['twitter', 'bluesky', 'bluesky_alt']),
+        DummyConfig(selected=['twitter_1', 'bluesky_1', 'bluesky_alt']),
         DummyAuthManager(True, True, True),
     )
     qtbot.addWidget(window)
 
     window._platforms = {
-        'twitter': DummyPlatform(False, 'TW-AUTH-EXPIRED'),
-        'bluesky': DummyPlatform(True),
-        'bluesky_alt': DummyPlatform(True),
+        'twitter_1': DummyPlatform(False, 'TW-AUTH-EXPIRED', 'Twitter (jasmeralia)'),
+        'bluesky_1': DummyPlatform(True, name='Bluesky (jasmeralia)'),
+        'bluesky_alt': DummyPlatform(True, name='Bluesky (alt)'),
     }
 
     captured = {}
@@ -401,7 +440,7 @@ def test_download_update_applies_theme_to_progress(qtbot, monkeypatch, tmp_path)
         def setValue(self, _value):  # noqa: N802
             return
 
-        def exec_(self):
+        def exec(self):
             self.exec_called = True
             return 0
 
@@ -427,7 +466,7 @@ def test_download_update_applies_theme_to_progress(qtbot, monkeypatch, tmp_path)
         def _apply_dialog_theme(self, dialog):
             applied.append(dialog)
 
-    window = DummyWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     update = type(
@@ -461,7 +500,7 @@ def test_show_setup_wizard_logs_failure(qtbot, monkeypatch):
     )
     monkeypatch.setattr('src.gui.main_window.MainWindow._show_message_box', lambda *_a, **_k: 0)
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     window._show_setup_wizard_impl()
@@ -483,15 +522,18 @@ def test_action_logging_for_post_and_connections(qtbot, monkeypatch, tmp_path):
     monkeypatch.setattr('src.gui.main_window.get_logger', lambda: logger)
     monkeypatch.setattr('src.gui.main_window.MainWindow._show_message_box', lambda *_a, **_k: 0)
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
     class DummyPlatform:
         def test_connection(self):
             return True, None
 
-    window._platforms['twitter'] = DummyPlatform()
-    window._platform_selector.set_selected(['twitter'])
+        def get_platform_name(self):
+            return 'Twitter'
+
+    window._platforms['twitter_1'] = DummyPlatform()
+    window._platform_selector.set_selected(['twitter_1'])
 
     window._test_connections()
     assert 'User clicked Test Connections' in logged
@@ -520,6 +562,8 @@ def test_show_message_box_applies_theme(qtbot, monkeypatch):
             'DummyMessageBox',
             (),
             {
+                'Icon': QMessageBox.Icon,
+                'StandardButton': QMessageBox.StandardButton,
                 'Ok': 0,
                 'Information': 1,
                 'Warning': 2,
@@ -527,22 +571,21 @@ def test_show_message_box_applies_theme(qtbot, monkeypatch):
                 'Yes': 4,
                 'No': 5,
                 'StandardButtons': int,
-                'StandardButton': int,
                 '__init__': lambda *_a, **_k: None,
                 'setWindowTitle': lambda *_a, **_k: None,
                 'setText': lambda *_a, **_k: None,
                 'setIcon': lambda *_a, **_k: None,
                 'setStandardButtons': lambda *_a, **_k: None,
                 'setDefaultButton': lambda *_a, **_k: None,
-                'exec_': lambda *_a, **_k: 0,
+                'exec': lambda *_a, **_k: 0,
             },
         ),
     )
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
-    window._show_message_box('Title', 'Body', QMessageBox.Information)
+    window._show_message_box('Title', 'Body', QMessageBox.Icon.Information)
 
     assert apply_calls
 
@@ -571,7 +614,7 @@ def test_manual_update_check_accepts_update(qtbot, monkeypatch):
         def __init__(self, *_a, **_k):
             return
 
-        def exec_(self):
+        def exec(self):
             return self.Accepted
 
     monkeypatch.setattr('src.gui.main_window.UpdateAvailableDialog', DummyDialog)
@@ -580,7 +623,7 @@ def test_manual_update_check_accepts_update(qtbot, monkeypatch):
     def fake_download(_update):
         called['downloaded'] = _update.latest_version
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
     window._download_update = fake_download
 
@@ -596,7 +639,7 @@ def test_show_image_preview_logs_send_on_error(qtbot, monkeypatch, tmp_path):
         def __init__(self, *_a, **_k):
             self.had_errors = True
 
-        def exec_(self):
+        def exec(self):
             return 0
 
         def get_processed_paths(self):
@@ -612,7 +655,7 @@ def test_show_image_preview_logs_send_on_error(qtbot, monkeypatch, tmp_path):
     def fake_send_logs():
         called['sent'] = True
 
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
     window._send_logs = fake_send_logs
 
@@ -624,23 +667,24 @@ def test_show_image_preview_logs_send_on_error(qtbot, monkeypatch, tmp_path):
 
 
 def test_main_window_single_platform_enabled(qtbot):
-    window = DummyMainWindow(DummyConfig(selected=['twitter']), DummyAuthManager(True, False))
+    window = DummyMainWindow(DummyConfig(selected=['twitter_1']), DummyAuthManager(True, False))
     qtbot.addWidget(window)
 
-    assert window._platform_selector.get_enabled() == ['twitter']
-    assert window._platform_selector.get_selected() == ['twitter']
+    assert window._platform_selector.get_enabled() == ['twitter_1']
+    assert window._platform_selector.get_selected() == ['twitter_1']
     assert window._post_btn.isEnabled()
     assert window._test_btn.isEnabled()
     assert window._composer._choose_btn.isEnabled()
     assert window._test_btn.styleSheet() == window._post_btn.styleSheet()
-    assert window._platform_selector.get_platform_label('twitter') == 'Twitter (jasmeralia)'
+    assert window._platform_selector.get_platform_label('twitter_1') == 'Twitter (jasmeralia)'
 
 
 def test_main_window_disable_when_unchecked(qtbot):
     window = DummyMainWindow(DummyConfig(selected=[]), DummyAuthManager(True, True))
     qtbot.addWidget(window)
 
-    assert window._platform_selector.get_enabled() == ['twitter', 'bluesky']
+    assert 'twitter_1' in window._platform_selector.get_enabled()
+    assert 'bluesky_1' in window._platform_selector.get_enabled()
     assert window._platform_selector.get_selected() == []
     assert not window._post_btn.isEnabled()
     assert not window._test_btn.isEnabled()

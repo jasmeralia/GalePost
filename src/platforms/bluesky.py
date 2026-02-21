@@ -50,13 +50,25 @@ def detect_urls(text: str) -> list[dict]:
 class BlueskyPlatform(BasePlatform):
     """Bluesky posting via AT Protocol."""
 
-    def __init__(self, auth_manager: AuthManager, account_key: str = 'primary'):
+    def __init__(
+        self,
+        auth_manager: AuthManager,
+        account_key: str = 'primary',
+        account_id: str = '',
+        profile_name: str = '',
+    ):
         self._auth_manager = auth_manager
         self._account_key = account_key
+        self._account_id = account_id or ('bluesky_alt' if account_key == 'alt' else 'bluesky_1')
+        self._profile_name = profile_name
         self._client: Any | None = None
 
     def get_platform_name(self) -> str:
-        return 'Bluesky (Alt)' if self._account_key == 'alt' else 'Bluesky'
+        if self._profile_name:
+            return f'Bluesky ({self._profile_name})'
+        if self._account_key == 'alt':
+            return 'Bluesky (Alt)'
+        return 'Bluesky'
 
     def get_specs(self) -> PlatformSpecs:
         return BLUESKY_SPECS
@@ -166,6 +178,9 @@ class BlueskyPlatform(BasePlatform):
                 platform='Bluesky',
                 post_url=post_url,
                 raw_response={'uri': response.uri, 'cid': response.cid},
+                account_id=self._account_id,
+                profile_name=self._profile_name,
+                url_captured=True,
             )
 
         except Exception as e:

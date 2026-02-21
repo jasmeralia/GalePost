@@ -1,55 +1,59 @@
 """Platform selection checkboxes."""
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QWidget
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtWidgets import QCheckBox, QGridLayout, QLabel, QWidget
+
+from src.utils.constants import PLATFORM_SPECS_MAP, AccountConfig
 
 
 class PlatformSelector(QWidget):
-    """Checkboxes for selecting which platforms to post to."""
+    """Checkboxes for selecting which platform accounts to post to.
+
+    Dynamically builds checkboxes from a list of AccountConfig entries.
+    """
 
     selection_changed = pyqtSignal(list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._checkboxes = {}
+        self._checkboxes: dict[str, QCheckBox] = {}
+        self._accounts: list[AccountConfig] = []
         self._init_ui()
 
     def _init_ui(self):
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        self._layout = QGridLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setHorizontalSpacing(20)
+        self._layout.setVerticalSpacing(4)
 
         self._label = QLabel('Post to:')
         self._label.setStyleSheet('font-weight: bold; font-size: 13px; color: palette(text);')
-        layout.addWidget(self._label)
+        self._layout.addWidget(self._label, 0, 0)
 
-        layout.addSpacing(10)
+    def set_accounts(self, accounts: list[AccountConfig]):
+        """Rebuild checkboxes from account list."""
+        # Clear existing
+        for cb in self._checkboxes.values():
+            cb.setParent(None)
+            cb.deleteLater()
+        self._checkboxes.clear()
+        self._accounts = accounts
 
-        self._tw_cb = QCheckBox('Twitter')
-        self._tw_cb.setChecked(True)
-        self._tw_cb.setStyleSheet('font-size: 13px; color: #1DA1F2;')
-        self._tw_cb.stateChanged.connect(self._on_changed)
-        layout.addWidget(self._tw_cb)
-        self._checkboxes['twitter'] = self._tw_cb
+        # Build checkboxes in a 2-column grid
+        for i, account in enumerate(accounts):
+            specs = PLATFORM_SPECS_MAP.get(account.platform_id)
+            color = specs.platform_color if specs else '#000000'
+            label = self._format_account_label(account)
 
-        layout.addSpacing(20)
+            cb = QCheckBox(label)
+            cb.setChecked(account.enabled)
+            cb.setStyleSheet(f'font-size: 13px; color: {color};')
+            cb.stateChanged.connect(self._on_changed)
 
-        self._bs_cb = QCheckBox('Bluesky')
-        self._bs_cb.setChecked(True)
-        self._bs_cb.setStyleSheet('font-size: 13px; color: #0085FF;')
-        self._bs_cb.stateChanged.connect(self._on_changed)
-        layout.addWidget(self._bs_cb)
-        self._checkboxes['bluesky'] = self._bs_cb
-
-        layout.addSpacing(20)
-
-        self._bs_alt_cb = QCheckBox('Bluesky 2')
-        self._bs_alt_cb.setChecked(False)
-        self._bs_alt_cb.setStyleSheet('font-size: 13px; color: #0085FF;')
-        self._bs_alt_cb.stateChanged.connect(self._on_changed)
-        layout.addWidget(self._bs_alt_cb)
-        self._checkboxes['bluesky_alt'] = self._bs_alt_cb
-
-        layout.addStretch()
+            row = (i // 2) + 1  # row 0 is the "Post to:" label
+            col = i % 2
+            self._layout.addWidget(cb, row, col)
+            self._checkboxes[account.account_id] = cb
 
     def _on_changed(self, _state):
         self.selection_changed.emit(self.get_selected())
@@ -57,12 +61,12 @@ class PlatformSelector(QWidget):
     def get_selected(self) -> list[str]:
         return [name for name, cb in self._checkboxes.items() if cb.isChecked()]
 
-    def set_selected(self, platforms: list[str]):
+    def set_selected(self, account_ids: list[str]):
         for name, cb in self._checkboxes.items():
-            cb.setChecked(name in platforms and cb.isEnabled())
+            cb.setChecked(name in account_ids and cb.isEnabled())
 
-    def set_platform_enabled(self, name: str, enabled: bool):
-        cb = self._checkboxes.get(name)
+    def set_platform_enabled(self, account_id: str, enabled: bool):
+        cb = self._checkboxes.get(account_id)
         if not cb:
             return
         cb.setEnabled(enabled)
@@ -72,28 +76,44 @@ class PlatformSelector(QWidget):
     def get_enabled(self) -> list[str]:
         return [name for name, cb in self._checkboxes.items() if cb.isEnabled()]
 
-    def set_platform_username(self, name: str, username: str | None):
-        cb = self._checkboxes.get(name)
+    def set_platform_username(self, account_id: str, username: str | None):
+        cb = self._checkboxes.get(account_id)
         if not cb:
             return
-        if name == 'twitter':
-            base = 'Twitter'
-        else:
-            base = 'Bluesky'
-        label = self._format_platform_label(base, username)
+        account = self._get_account(account_id)
+        if not account:
+            return
+        label = self._format_account_label(account, username_override=username)
         cb.setText(label)
 
-    @staticmethod
-    def _format_platform_label(base: str, username: str | None) -> str:
-        if not username:
-            return base
-        trimmed = username.strip().lstrip('@')
-        if base.lower().startswith('bluesky') and trimmed.endswith('.bsky.social'):
-            trimmed = trimmed[: -len('.bsky.social')]
-        if not trimmed:
-            return base
-        return f'{base} ({trimmed})'
+    def _get_account(self, account_id: str) -> AccountConfig | None:
+        for a in self._accounts:
+            if a.account_id == account_id:
+                return a
+        return None
 
-    def get_platform_label(self, name: str) -> str:
-        cb = self._checkboxes.get(name)
+    @staticmethod
+    def _format_account_label(
+        account: AccountConfig,
+        username_override: str | None = None,
+    ) -> str:
+        specs = PLATFORM_SPECS_MAP.get(account.platform_id)
+        base = specs.platform_name if specs else account.platform_id.title()
+        username = username_override or account.profile_name
+        return _format_platform_label(base, username, account.platform_id)
+
+    def get_platform_label(self, account_id: str) -> str:
+        cb = self._checkboxes.get(account_id)
         return cb.text() if cb else ''
+
+
+def _format_platform_label(base: str, username: str | None, platform_id: str = '') -> str:
+    """Format a platform label with optional username parenthetical."""
+    if not username:
+        return base
+    trimmed = username.strip().lstrip('@')
+    if platform_id == 'bluesky' and trimmed.endswith('.bsky.social'):
+        trimmed = trimmed[: -len('.bsky.social')]
+    if not trimmed:
+        return base
+    return f'{base} ({trimmed})'

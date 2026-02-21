@@ -1,6 +1,6 @@
 """Dialog to collect log submission details from the user."""
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLabel,
@@ -33,8 +33,10 @@ class LogSubmitDialog(QDialog):
         self._notes.textChanged.connect(self._on_text_changed)
         layout.addWidget(self._notes)
 
-        self._buttons = QDialogButtonBox(QDialogButtonBox.Cancel)
-        self._send_btn = self._buttons.addButton('Send Logs', QDialogButtonBox.AcceptRole)
+        self._buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
+        self._send_btn = self._buttons.addButton(
+            'Send Logs', QDialogButtonBox.ButtonRole.AcceptRole
+        )
         self._send_btn.setEnabled(False)
         self._buttons.rejected.connect(self.reject)
         self._buttons.accepted.connect(self.accept)

@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-02-20
+
+### Phase 1 Complete - Multi-Account & WebView Platforms
+
+This is a major release introducing multi-account support, 5 new platforms, and WebView integration for browser-based posting.
+
+#### Added
+- **Multi-Account Support**: Support for up to 2 accounts per platform (Twitter, Instagram, Snapchat)
+- **New Platforms**:
+  - Instagram (Graph API, 2 accounts)
+  - Snapchat (WebView, 2 accounts)
+  - OnlyFans (WebView, Cloudflare-aware)
+  - Fansly (WebView, Cloudflare-aware)
+  - FetLife (WebView)
+- **WebView Infrastructure**: Browser-based posting with pre-filled composer and per-account session isolation
+- **Twitter PIN Flow**: OAuth 1.0a PIN-based authorization for multi-account setup
+- **Two-Tier Posting**: API platforms post silently, WebView platforms open confirm-click panel
+- **Account Management**: accounts_config.json for account metadata, per-account keyring storage
+- **WebView Panel**: Tabbed browser interface for manual post confirmation on WebView platforms
+- **Enhanced Results Dialog**: Shows "Posted (link unavailable)" and "Not confirmed" states for WebView platforms
+- **Dynamic Platform Selector**: Account-based checkboxes with profile names (e.g., "Twitter (rinthemodel)")
+- **Updated Setup Wizard**: Multi-page setup for all 7 platforms with account labeling
+- **Enhanced Settings Dialog**: Account management, Instagram credentials, WebView profile names
+
+#### Changed
+- **Migrated to PyQt6** from PyQt5 (all source and tests updated)
+- **Refactored auth_manager.py**: Account-based API, backward compatible with Phase 0
+- **Updated PlatformSpecs**: Added max_accounts, api_type, requires_user_confirm, has_cloudflare fields
+- **Updated PostResult**: Added account_id, profile_name, url_captured, user_confirmed fields
+- **Platform selector**: 2-column grid layout for 10+ accounts
+- **Post composer**: Dynamic character counters per platform type
+- **Image preview tabs**: Uses PLATFORM_SPECS_MAP for all 7 platforms
+- **Main window**: Two-tier posting flow (API + WebView)
+
+#### Technical
+- **Test Suite**: 168 tests (up from 120), 71% coverage
+- **New Test Files**: test_auth_manager_accounts.py, test_image_processor_platforms.py, test_results_dialog_webview.py, test_instagram.py, test_webview_platforms.py
+- **Error Codes**: Added IG-AUTH-INVALID, IG-AUTH-EXPIRED, IG-RATE-LIMIT, WV-LOAD-FAILED, WV-PREFILL-FAILED, WV-SUBMIT-TIMEOUT, WV-SESSION-EXPIRED, WV-URL-CAPTURE-FAILED
+- **Dependencies**: Added PyQt6-WebEngine>=6.6.0, facebook-sdk>=3.1.0
+- **Build System**: Updated build.spec for PyQt6 + WebEngine hidden imports
+
+#### Notes
+- SuicideGirls platform deferred to future release
+- Phase 0 auth files (twitter_auth.json, bluesky_auth.json) automatically migrate on first launch
+- WebView URL capture is best-effort; "link unavailable" is normal for SPA platforms
+
 ## [0.2.118] - 2026-02-20
 - Add additional main window tests for update flow and message box theming.
 - Expand action logging coverage and improve dialog tests.

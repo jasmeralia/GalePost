@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QPalette
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtGui import QPalette
+from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from src.utils.constants import BLUESKY_SPECS, TWITTER_SPECS
+from src.utils.constants import PLATFORM_SPECS_MAP
 
 
 class PostComposer(QWidget):
@@ -30,10 +30,17 @@ class PostComposer(QWidget):
         self._last_image_dir = ''
         self._selected_platforms: set[str] = set()
         self._enabled_platforms: set[str] = set()
+        # Maps account_id -> platform_id for counter grouping
+        self._account_platform_map: dict[str, str] = {}
+        self._counter_labels: dict[str, QLabel] = {}
         self._init_ui()
 
     def set_last_image_dir(self, path: str):
         self._last_image_dir = path
+
+    def set_account_platform_map(self, mapping: dict[str, str]):
+        """Set the mapping from account_id to platform_id."""
+        self._account_platform_map = mapping
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
@@ -52,18 +59,12 @@ class PostComposer(QWidget):
         self._text_edit.textChanged.connect(self._on_text_changed)
         layout.addWidget(self._text_edit)
 
-        # Character counters
-        counter_layout = QHBoxLayout()
+        # Character counters — dynamic row
+        self._counter_layout = QHBoxLayout()
         self._char_count_label = QLabel('0 characters')
-        counter_layout.addWidget(self._char_count_label)
-        counter_layout.addStretch()
-
-        self._tw_counter = QLabel()
-        self._bs_counter = QLabel()
-        counter_layout.addWidget(self._tw_counter)
-        counter_layout.addSpacing(15)
-        counter_layout.addWidget(self._bs_counter)
-        layout.addLayout(counter_layout)
+        self._counter_layout.addWidget(self._char_count_label)
+        self._counter_layout.addStretch()
+        layout.addLayout(self._counter_layout)
 
         layout.addSpacing(10)
 
@@ -115,37 +116,40 @@ class PostComposer(QWidget):
 
         self._char_count_label.setText(f'{length} characters')
 
-        tw_max = TWITTER_SPECS.max_text_length
-        bs_max = BLUESKY_SPECS.max_text_length
+        # Determine which platform types are active (deduplicate by platform_id)
+        active_platforms: dict[str, str] = {}  # platform_id -> platform_name
+        for account_id in self._selected_platforms & self._enabled_platforms:
+            platform_id = self._account_platform_map.get(account_id, account_id)
+            specs = PLATFORM_SPECS_MAP.get(platform_id)
+            if specs and specs.max_text_length is not None:
+                active_platforms[platform_id] = specs.platform_name
 
-        tw_ok = length <= tw_max
-        bs_ok = length <= bs_max
+        # Remove counters for inactive platforms
+        for pid in list(self._counter_labels.keys()):
+            if pid not in active_platforms:
+                label = self._counter_labels.pop(pid)
+                self._counter_layout.removeWidget(label)
+                label.deleteLater()
 
-        tw_symbol = '\u2713' if tw_ok else '\u26a0'
-        bs_symbol = '\u2713' if bs_ok else '\u26a0'
+        # Add/update counters for active platforms
+        for platform_id, platform_name in sorted(active_platforms.items()):
+            specs = PLATFORM_SPECS_MAP[platform_id]
+            max_len = specs.max_text_length
+            ok = length <= max_len
+            symbol = '\u2713' if ok else '\u26a0'
+            color = '#4CAF50' if ok else '#F44336'
 
-        tw_color = '#4CAF50' if tw_ok else '#F44336'
-        bs_color = '#4CAF50' if bs_ok else '#F44336'
+            if platform_id not in self._counter_labels:
+                lbl = QLabel()
+                self._counter_labels[platform_id] = lbl
+                # Insert before the stretch
+                self._counter_layout.insertWidget(
+                    self._counter_layout.count() - 1, lbl
+                )
 
-        tw_active = 'twitter' in self._selected_platforms and 'twitter' in self._enabled_platforms
-        bs_active = any(
-            platform in self._selected_platforms and platform in self._enabled_platforms
-            for platform in ('bluesky', 'bluesky_alt')
-        )
-
-        if tw_active:
-            self._tw_counter.setText(f'{tw_symbol} Twitter: {length}/{tw_max}')
-            self._tw_counter.setStyleSheet(f'color: {tw_color}; font-weight: bold;')
-            self._tw_counter.setVisible(True)
-        else:
-            self._tw_counter.setVisible(False)
-
-        if bs_active:
-            self._bs_counter.setText(f'{bs_symbol} Bluesky: {length}/{bs_max}')
-            self._bs_counter.setStyleSheet(f'color: {bs_color}; font-weight: bold;')
-            self._bs_counter.setVisible(True)
-        else:
-            self._bs_counter.setVisible(False)
+            lbl = self._counter_labels[platform_id]
+            lbl.setText(f'{symbol} {platform_name}: {length}/{max_len}')
+            lbl.setStyleSheet(f'color: {color}; font-weight: bold;')
 
     def _choose_image(self):
         start_dir = self._last_image_dir or ''
@@ -196,7 +200,9 @@ class PostComposer(QWidget):
     def _set_image_label(self, text: str, is_placeholder: bool):
         self._image_label.setText(text)
         if is_placeholder:
-            muted = self.palette().color(QPalette.Disabled, QPalette.Text).name()
+            muted = (
+                self.palette().color(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text).name()
+            )
             self._image_label.setStyleSheet(f'color: {muted}; padding: 4px;')
         else:
             self._image_label.setStyleSheet('padding: 4px;')

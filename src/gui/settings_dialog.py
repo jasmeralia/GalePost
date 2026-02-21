@@ -1,6 +1,6 @@
 """Settings dialog for debug mode, updates, and log configuration."""
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
     QFormLayout,
@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -17,6 +18,7 @@ from PyQt5.QtWidgets import (
 
 from src.core.auth_manager import AuthManager
 from src.core.config_manager import ConfigManager
+from src.utils.constants import PLATFORM_SPECS_MAP, AccountConfig
 
 
 class SettingsDialog(QDialog):
@@ -28,7 +30,7 @@ class SettingsDialog(QDialog):
         self._auth_manager = auth_manager
 
         self.setWindowTitle('Settings')
-        self.setMinimumSize(500, 450)
+        self.setMinimumSize(500, 500)
 
         layout = QVBoxLayout(self)
 
@@ -89,6 +91,9 @@ class SettingsDialog(QDialog):
         return widget
 
     def _create_accounts_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -102,21 +107,21 @@ class SettingsDialog(QDialog):
         tw_layout.addRow('Username:', self._tw_username)
 
         self._tw_api_key = QLineEdit(tw_creds.get('api_key', '') if tw_creds else '')
-        self._tw_api_key.setEchoMode(QLineEdit.Password)
+        self._tw_api_key.setEchoMode(QLineEdit.EchoMode.Password)
         tw_layout.addRow('API Key:', self._tw_api_key)
 
         self._tw_api_secret = QLineEdit(tw_creds.get('api_secret', '') if tw_creds else '')
-        self._tw_api_secret.setEchoMode(QLineEdit.Password)
+        self._tw_api_secret.setEchoMode(QLineEdit.EchoMode.Password)
         tw_layout.addRow('API Secret:', self._tw_api_secret)
 
         self._tw_access_token = QLineEdit(tw_creds.get('access_token', '') if tw_creds else '')
-        self._tw_access_token.setEchoMode(QLineEdit.Password)
+        self._tw_access_token.setEchoMode(QLineEdit.EchoMode.Password)
         tw_layout.addRow('Access Token:', self._tw_access_token)
 
         self._tw_access_secret = QLineEdit(
             tw_creds.get('access_token_secret', '') if tw_creds else ''
         )
-        self._tw_access_secret.setEchoMode(QLineEdit.Password)
+        self._tw_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
         tw_layout.addRow('Access Token Secret:', self._tw_access_secret)
 
         tw_logout = QPushButton('Logout')
@@ -134,7 +139,7 @@ class SettingsDialog(QDialog):
         bs_layout.addRow('Username (handle):', self._bs_identifier)
 
         self._bs_app_password = QLineEdit(bs_creds.get('app_password', '') if bs_creds else '')
-        self._bs_app_password.setEchoMode(QLineEdit.Password)
+        self._bs_app_password.setEchoMode(QLineEdit.EchoMode.Password)
         bs_layout.addRow('App Password:', self._bs_app_password)
 
         bs_logout = QPushButton('Logout')
@@ -156,7 +161,7 @@ class SettingsDialog(QDialog):
         self._bs_alt_app_password = QLineEdit(
             bs_alt_creds.get('app_password', '') if bs_alt_creds else ''
         )
-        self._bs_alt_app_password.setEchoMode(QLineEdit.Password)
+        self._bs_alt_app_password.setEchoMode(QLineEdit.EchoMode.Password)
         bs_alt_layout.addRow('App Password:', self._bs_alt_app_password)
 
         bs_alt_logout = QPushButton('Logout')
@@ -165,8 +170,62 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(bs_alt_group)
 
+        # Instagram
+        ig_group = QGroupBox('Instagram')
+        ig_layout = QFormLayout(ig_group)
+        ig_layout.addRow(QLabel(
+            '<i>Requires a Business/Creator account linked to a Facebook Page.</i>'
+        ), QLabel())
+
+        ig_creds = self._auth_manager.get_account_credentials('instagram_1')
+        self._ig_access_token = QLineEdit(ig_creds.get('access_token', '') if ig_creds else '')
+        self._ig_access_token.setEchoMode(QLineEdit.EchoMode.Password)
+        ig_layout.addRow('Access Token:', self._ig_access_token)
+
+        self._ig_user_id = QLineEdit(ig_creds.get('ig_user_id', '') if ig_creds else '')
+        ig_layout.addRow('IG User ID:', self._ig_user_id)
+
+        self._ig_page_id = QLineEdit(ig_creds.get('page_id', '') if ig_creds else '')
+        ig_layout.addRow('Facebook Page ID:', self._ig_page_id)
+
+        self._ig_profile_name = QLineEdit(ig_creds.get('profile_name', '') if ig_creds else '')
+        self._ig_profile_name.setPlaceholderText('Display name (e.g. rinthemodel)')
+        ig_layout.addRow('Profile Name:', self._ig_profile_name)
+
+        ig_logout = QPushButton('Logout')
+        ig_logout.clicked.connect(self._logout_instagram)
+        ig_layout.addRow('', ig_logout)
+
+        layout.addWidget(ig_group)
+
+        # WebView platforms — show configured accounts with login/logout buttons
+        self._webview_profile_edits: dict[str, QLineEdit] = {}
+        for platform_id, specs in PLATFORM_SPECS_MAP.items():
+            if specs.api_type != 'webview':
+                continue
+            group = QGroupBox(specs.platform_name)
+            form = QFormLayout(group)
+
+            form.addRow(QLabel(
+                '<i>Log in via the embedded browser. Your session cookies are stored locally.</i>'
+            ), QLabel())
+
+            for n in range(1, specs.max_accounts + 1):
+                account_id = f'{platform_id}_{n}'
+                account = self._auth_manager.get_account(account_id)
+                profile_name = account.profile_name if account else ''
+
+                suffix = f' (Account {n})' if specs.max_accounts > 1 else ''
+                name_edit = QLineEdit(profile_name)
+                name_edit.setPlaceholderText(f'Display name{suffix}')
+                form.addRow(f'Profile Name{suffix}:', name_edit)
+                self._webview_profile_edits[account_id] = name_edit
+
+            layout.addWidget(group)
+
         layout.addStretch()
-        return widget
+        scroll.setWidget(widget)
+        return scroll
 
     def _create_advanced_tab(self) -> QWidget:
         widget = QWidget()
@@ -234,6 +293,36 @@ class SettingsDialog(QDialog):
         if bs_alt_id and bs_alt_pw:
             self._auth_manager.save_bluesky_auth_alt(bs_alt_id, bs_alt_pw)
 
+        # Accounts - Instagram
+        ig_token = self._ig_access_token.text().strip()
+        ig_uid = self._ig_user_id.text().strip()
+        ig_pid = self._ig_page_id.text().strip()
+        ig_name = self._ig_profile_name.text().strip()
+        if ig_token and ig_uid:
+            self._auth_manager.save_account_credentials('instagram_1', {
+                'access_token': ig_token,
+                'ig_user_id': ig_uid,
+                'page_id': ig_pid,
+                'profile_name': ig_name,
+            })
+            self._auth_manager.add_account(AccountConfig(
+                platform_id='instagram',
+                account_id='instagram_1',
+                profile_name=ig_name,
+            ))
+
+        # Accounts - WebView platforms (save profile names)
+        for account_id, name_edit in self._webview_profile_edits.items():
+            profile_name = name_edit.text().strip()
+            if profile_name:
+                # Determine platform_id from account_id (e.g. "snapchat_1" -> "snapchat")
+                platform_id = account_id.rsplit('_', 1)[0]
+                self._auth_manager.add_account(AccountConfig(
+                    platform_id=platform_id,
+                    account_id=account_id,
+                    profile_name=profile_name,
+                ))
+
         self._config.save()
         self.accept()
 
@@ -274,3 +363,11 @@ class SettingsDialog(QDialog):
         self._auth_manager.clear_bluesky_auth_alt()
         self._bs_alt_identifier.clear()
         self._bs_alt_app_password.clear()
+
+    def _logout_instagram(self):
+        self._auth_manager.clear_account_credentials('instagram_1')
+        self._auth_manager.remove_account('instagram_1')
+        self._ig_access_token.clear()
+        self._ig_user_id.clear()
+        self._ig_page_id.clear()
+        self._ig_profile_name.clear()

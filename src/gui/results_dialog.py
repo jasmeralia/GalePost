@@ -1,7 +1,7 @@
 """Post results dialog with clickable links and copy buttons."""
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFrame,
@@ -30,7 +30,7 @@ class ResultsDialog(QDialog):
 
         for result in results:
             frame = QFrame()
-            frame.setFrameShape(QFrame.StyledPanel)
+            frame.setFrameShape(QFrame.Shape.StyledPanel)
             frame.setStyleSheet('QFrame { padding: 8px; margin: 4px; }')
             frame_layout = QVBoxLayout(frame)
 
@@ -43,7 +43,7 @@ class ResultsDialog(QDialog):
 
         # Separator
         sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
+        sep.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(sep)
 
         # Bottom buttons
@@ -73,10 +73,17 @@ class ResultsDialog(QDialog):
         layout.addLayout(btn_layout)
 
     def _add_success_row(self, layout: QVBoxLayout, result: PostResult):
-        header = QLabel(
-            f'<span style="color: #4CAF50; font-size: 14px;">'
-            f'\u2713 {result.platform} - Posted successfully!</span>'
-        )
+        # Show different messages for WebView confirm-click vs API results
+        if result.user_confirmed and not result.url_captured:
+            header = QLabel(
+                f'<span style="color: #4CAF50; font-size: 14px;">'
+                f'\u2713 {result.platform} - Posted (link unavailable)</span>'
+            )
+        else:
+            header = QLabel(
+                f'<span style="color: #4CAF50; font-size: 14px;">'
+                f'\u2713 {result.platform} - Posted successfully!</span>'
+            )
         layout.addWidget(header)
 
         if result.post_url:

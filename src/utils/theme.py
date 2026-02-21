@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import sys
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPalette
-from PyQt5.QtWidgets import QApplication, QWidget
+from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtWidgets import QApplication, QWidget
 
 
 def windows_prefers_dark() -> bool:
@@ -35,19 +34,19 @@ def resolve_theme_mode(mode: str) -> str:
 
 def _apply_dark_palette(app: QApplication):
     palette = QPalette()
-    palette.setColor(QPalette.Window, QColor(53, 53, 53))
-    palette.setColor(QPalette.WindowText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.Base, QColor(35, 35, 35))
-    palette.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    palette.setColor(QPalette.ToolTipBase, Qt.GlobalColor.white)
-    palette.setColor(QPalette.ToolTipText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.Text, Qt.GlobalColor.white)
-    palette.setColor(QPalette.Button, QColor(53, 53, 53))
-    palette.setColor(QPalette.ButtonText, Qt.GlobalColor.white)
-    palette.setColor(QPalette.BrightText, Qt.GlobalColor.red)
-    palette.setColor(QPalette.Link, QColor(42, 130, 218))
-    palette.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    palette.setColor(QPalette.HighlightedText, Qt.GlobalColor.black)
+    palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
+    palette.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+    palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Text, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+    palette.setColor(QPalette.ColorRole.ButtonText, QColor(255, 255, 255))
+    palette.setColor(QPalette.ColorRole.BrightText, QColor(255, 0, 0))
+    palette.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+    palette.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+    palette.setColor(QPalette.ColorRole.HighlightedText, QColor(0, 0, 0))
     app.setPalette(palette)
 
 

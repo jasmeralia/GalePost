@@ -16,6 +16,14 @@ class _FakeAuth:
     def get_twitter_auth(self):
         return self._twitter
 
+    def get_twitter_app_credentials(self):
+        if self._twitter:
+            return {'api_key': self._twitter['api_key'], 'api_secret': self._twitter['api_secret']}
+        return None
+
+    def get_account_credentials(self, account_id):
+        return None
+
     def get_bluesky_auth(self):
         return self._bluesky
 

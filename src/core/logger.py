@@ -96,7 +96,7 @@ def capture_screenshot(error_code: str):
     try:
         from typing import cast
 
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
 
         app = cast(QApplication | None, QApplication.instance())
         if app is None:
