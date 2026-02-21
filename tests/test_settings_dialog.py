@@ -26,6 +26,7 @@ def _make_auth(tmp_path, monkeypatch) -> AuthManager:
 def test_settings_dialog_saves_config_and_auth(qtbot, tmp_path, monkeypatch):
     config = _make_config(tmp_path, monkeypatch)
     auth = _make_auth(tmp_path, monkeypatch)
+    auth.save_account_credentials('twitter_1', {'access_token': 't', 'access_token_secret': 'ts'})
 
     dialog = SettingsDialog(config, auth)
     qtbot.addWidget(dialog)
@@ -37,11 +38,9 @@ def test_settings_dialog_saves_config_and_auth(qtbot, tmp_path, monkeypatch):
     dialog._log_upload_cb.setChecked(False)
     dialog._endpoint_edit.setText('https://example.com/logs')
 
-    dialog._tw_username.setText('tester')
     dialog._tw_api_key.setText('k')
     dialog._tw_api_secret.setText('s')
-    dialog._tw_access_token.setText('t')
-    dialog._tw_access_secret.setText('ts')
+    dialog._twitter_accounts['twitter_1']['username'].setText('tester')
 
     dialog._bs_identifier.setText('user.bsky.social')
     dialog._bs_app_password.setText('app-pass')
@@ -57,8 +56,9 @@ def test_settings_dialog_saves_config_and_auth(qtbot, tmp_path, monkeypatch):
     assert config.log_upload_enabled is False
     assert config.log_upload_endpoint == 'https://example.com/logs'
 
-    twitter_auth = json.loads((tmp_path / 'auth' / 'twitter_auth.json').read_text())
-    assert twitter_auth['username'] == 'tester'
+    twitter_app = json.loads((tmp_path / 'auth' / 'twitter_app_auth.json').read_text())
+    assert twitter_app['api_key'] == 'k'
+    assert auth.get_account('twitter_1').profile_name == 'tester'
 
     bluesky_auth = json.loads((tmp_path / 'auth' / 'bluesky_auth.json').read_text())
     assert bluesky_auth['identifier'] == 'user.bsky.social'
@@ -73,15 +73,13 @@ def test_settings_dialog_does_not_save_incomplete_twitter(qtbot, tmp_path, monke
     dialog = SettingsDialog(config, auth)
     qtbot.addWidget(dialog)
 
-    dialog._tw_username.setText('')
+    dialog._twitter_accounts['twitter_1']['username'].setText('tester')
     dialog._tw_api_key.setText('k')
     dialog._tw_api_secret.setText('s')
-    dialog._tw_access_token.setText('t')
-    dialog._tw_access_secret.setText('ts')
 
     dialog._save_and_close()
 
-    assert not (tmp_path / 'auth' / 'twitter_auth.json').exists()
+    assert not (tmp_path / 'auth' / 'twitter_1_auth.json').exists()
 
 
 def test_settings_dialog_blocks_duplicate_bluesky(qtbot, tmp_path, monkeypatch):

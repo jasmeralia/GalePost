@@ -3,6 +3,7 @@
 import contextlib
 import json
 import re
+import sqlite3
 from pathlib import Path
 
 from PyQt6.QtCore import QTimer, QUrl
@@ -37,6 +38,7 @@ class BaseWebViewPlatform(BasePlatform):
     SUCCESS_URL_PATTERN: str = ''
     SUCCESS_SELECTOR: str = ''
     PERMALINK_SELECTOR: str = ''
+    COOKIE_DOMAINS: list[str] = []
     PREFILL_DELAY_MS: int = 200
     POLL_INTERVAL_MS: int = 500
     POLL_TIMEOUT_MS: int = 30000
@@ -61,10 +63,9 @@ class BaseWebViewPlatform(BasePlatform):
 
     def create_webview(self, parent: QWidget | None = None) -> QWebEngineView:
         """Create an isolated QWebEngineView with persistent cookies."""
-        profile_name = self._account_id or 'default'
-        storage_path = get_app_data_dir() / 'webprofiles' / profile_name
+        storage_path = self._get_profile_storage_path()
 
-        self._profile = QWebEngineProfile(profile_name, parent)
+        self._profile = QWebEngineProfile(storage_path.name, parent)
         self._profile.setPersistentStoragePath(str(storage_path))
         self._profile.setPersistentCookiesPolicy(
             QWebEngineProfile.PersistentCookiesPolicy.AllowPersistentCookies
@@ -78,6 +79,34 @@ class BaseWebViewPlatform(BasePlatform):
         page.urlChanged.connect(self._on_url_changed)
 
         return self._view
+
+    def _get_profile_storage_path(self) -> Path:
+        profile_name = self._account_id or 'default'
+        return get_app_data_dir() / 'webprofiles' / profile_name
+
+    def _get_cookie_db_path(self) -> Path:
+        return self._get_profile_storage_path() / 'Cookies'
+
+    def has_valid_session(self) -> bool:
+        """Check for domain-specific cookies to validate a saved session."""
+        if not self.COOKIE_DOMAINS:
+            return False
+        cookie_path = self._get_cookie_db_path()
+        if not cookie_path.exists():
+            return False
+        try:
+            with sqlite3.connect(cookie_path) as conn:
+                cursor = conn.cursor()
+                for domain in self.COOKIE_DOMAINS:
+                    cursor.execute(
+                        'SELECT host_key FROM cookies WHERE host_key LIKE ? LIMIT 1',
+                        (f'%{domain}',),
+                    )
+                    if cursor.fetchone():
+                        return True
+        except sqlite3.Error:
+            return False
+        return False
 
     def get_webview(self) -> QWebEngineView | None:
         """Return the existing WebEngineView, if created."""
@@ -314,7 +343,9 @@ class BaseWebViewPlatform(BasePlatform):
 
     def test_connection(self) -> tuple[bool, str | None]:
         """WebView platforms can't easily test connections programmatically."""
-        return True, None
+        if self.has_valid_session():
+            return True, None
+        return False, 'WV-SESSION-EXPIRED'
 
     def post(self, text: str, image_path: Path | None = None) -> PostResult:
         """WebView platforms don't post programmatically.

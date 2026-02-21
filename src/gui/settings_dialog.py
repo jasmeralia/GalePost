@@ -1,5 +1,9 @@
 """Settings dialog for debug mode, updates, and log configuration."""
 
+from typing import cast
+
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QDesktopServices
 from PyQt6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -18,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from src.core.auth_manager import AuthManager
 from src.core.config_manager import ConfigManager
+from src.platforms.twitter import TwitterPlatform
 from src.utils.constants import PLATFORM_SPECS_MAP, AccountConfig
 
 
@@ -28,6 +33,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self._config = config
         self._auth_manager = auth_manager
+        self._twitter_pin_handlers: dict[str, object] = {}
 
         self.setWindowTitle('Settings')
         self.setMinimumSize(500, 500)
@@ -97,38 +103,75 @@ class SettingsDialog(QDialog):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        # Twitter
-        tw_group = QGroupBox('Twitter')
-        tw_layout = QFormLayout(tw_group)
+        # Twitter - App Credentials
+        tw_app_group = QGroupBox('Twitter App Credentials')
+        tw_app_layout = QFormLayout(tw_app_group)
 
-        tw_creds = self._auth_manager.get_twitter_auth()
-        self._tw_username = QLineEdit(tw_creds.get('username', '') if tw_creds else '')
-        self._tw_username.setPlaceholderText('Required for posting')
-        tw_layout.addRow('Username:', self._tw_username)
-
-        self._tw_api_key = QLineEdit(tw_creds.get('api_key', '') if tw_creds else '')
-        self._tw_api_key.setEchoMode(QLineEdit.EchoMode.Password)
-        tw_layout.addRow('API Key:', self._tw_api_key)
-
-        self._tw_api_secret = QLineEdit(tw_creds.get('api_secret', '') if tw_creds else '')
-        self._tw_api_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        tw_layout.addRow('API Secret:', self._tw_api_secret)
-
-        self._tw_access_token = QLineEdit(tw_creds.get('access_token', '') if tw_creds else '')
-        self._tw_access_token.setEchoMode(QLineEdit.EchoMode.Password)
-        tw_layout.addRow('Access Token:', self._tw_access_token)
-
-        self._tw_access_secret = QLineEdit(
-            tw_creds.get('access_token_secret', '') if tw_creds else ''
+        tw_app = (
+            self._auth_manager.get_twitter_app_credentials()
+            or self._auth_manager.get_twitter_auth()
         )
-        self._tw_access_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        tw_layout.addRow('Access Token Secret:', self._tw_access_secret)
+        self._tw_api_key = QLineEdit(tw_app.get('api_key', '') if tw_app else '')
+        self._tw_api_key.setEchoMode(QLineEdit.EchoMode.Password)
+        tw_app_layout.addRow('API Key:', self._tw_api_key)
 
-        tw_logout = QPushButton('Logout')
-        tw_logout.clicked.connect(self._logout_twitter)
-        tw_layout.addRow('', tw_logout)
+        self._tw_api_secret = QLineEdit(tw_app.get('api_secret', '') if tw_app else '')
+        self._tw_api_secret.setEchoMode(QLineEdit.EchoMode.Password)
+        tw_app_layout.addRow('API Secret:', self._tw_api_secret)
 
-        layout.addWidget(tw_group)
+        layout.addWidget(tw_app_group)
+
+        # Twitter - Accounts
+        self._twitter_accounts: dict[str, dict[str, QLineEdit | QLabel]] = {}
+        for account_id, label in [
+            ('twitter_1', 'Twitter Account 1'),
+            ('twitter_2', 'Twitter Account 2'),
+        ]:
+            account_group = QGroupBox(label)
+            account_layout = QFormLayout(account_group)
+
+            account = self._auth_manager.get_account(account_id)
+            username = account.profile_name if account else ''
+
+            username_edit = QLineEdit(username)
+            username_edit.setPlaceholderText('Required for posting')
+            account_layout.addRow('Username:', username_edit)
+
+            pin_edit = QLineEdit()
+            pin_edit.setPlaceholderText('Enter PIN from Twitter')
+            account_layout.addRow('PIN:', pin_edit)
+
+            btn_row = QHBoxLayout()
+            start_btn = QPushButton('Start PIN Flow')
+            start_btn.clicked.connect(
+                lambda _=False, aid=account_id: self._start_twitter_pin_flow(aid)
+            )
+            btn_row.addWidget(start_btn)
+            complete_btn = QPushButton('Complete PIN')
+            complete_btn.clicked.connect(
+                lambda _=False, aid=account_id: self._complete_twitter_pin_flow(aid)
+            )
+            btn_row.addWidget(complete_btn)
+            btn_row.addStretch()
+            account_layout.addRow('', btn_row)
+
+            status_label = QLabel()
+            account_layout.addRow('Status:', status_label)
+
+            logout_btn = QPushButton('Logout')
+            logout_btn.clicked.connect(
+                lambda _=False, aid=account_id: self._logout_twitter_account(aid)
+            )
+            account_layout.addRow('', logout_btn)
+
+            self._twitter_accounts[account_id] = {
+                'username': username_edit,
+                'pin': pin_edit,
+                'status': status_label,
+            }
+
+            self._update_twitter_status(account_id)
+            layout.addWidget(account_group)
 
         # Bluesky
         bs_group = QGroupBox('Bluesky')
@@ -274,16 +317,24 @@ class SettingsDialog(QDialog):
         self._config.set('log_upload_enabled', self._log_upload_cb.isChecked())
         self._config.set('log_upload_endpoint', self._endpoint_edit.text())
 
-        # Accounts - Twitter
+        # Accounts - Twitter app credentials
         tw_key = self._tw_api_key.text().strip()
         tw_secret = self._tw_api_secret.text().strip()
-        tw_token = self._tw_access_token.text().strip()
-        tw_token_secret = self._tw_access_secret.text().strip()
-        tw_username = self._tw_username.text().strip()
-        if tw_key and tw_secret and tw_token and tw_token_secret and tw_username:
-            self._auth_manager.save_twitter_auth(
-                tw_key, tw_secret, tw_token, tw_token_secret, username=tw_username
-            )
+        if tw_key and tw_secret:
+            self._auth_manager.save_twitter_app_credentials(tw_key, tw_secret)
+
+        # Accounts - Twitter profiles (only if credentials exist)
+        for account_id, widgets in self._twitter_accounts.items():
+            username = widgets['username'].text().strip()
+            creds = self._auth_manager.get_account_credentials(account_id) or {}
+            if username and all(k in creds for k in ('access_token', 'access_token_secret')):
+                self._auth_manager.add_account(
+                    AccountConfig(
+                        platform_id='twitter',
+                        account_id=account_id,
+                        profile_name=username,
+                    )
+                )
 
         # Accounts - Bluesky
         bs_id = self._bs_identifier.text().strip()
@@ -357,13 +408,97 @@ class SettingsDialog(QDialog):
             return False
         return True
 
-    def _logout_twitter(self):
-        self._auth_manager.clear_twitter_auth()
-        self._tw_username.clear()
-        self._tw_api_key.clear()
-        self._tw_api_secret.clear()
-        self._tw_access_token.clear()
-        self._tw_access_secret.clear()
+    def _update_twitter_status(self, account_id: str):
+        widgets = self._twitter_accounts.get(account_id)
+        if not widgets:
+            return
+        status_label = cast(QLabel, widgets['status'])
+        creds = self._auth_manager.get_account_credentials(account_id) or {}
+        if all(k in creds for k in ('access_token', 'access_token_secret')):
+            status_label.setText(
+                '<span style="color: #4CAF50; font-weight: bold;">\u2713 Authorized</span>'
+            )
+        else:
+            status_label.setText('Not authorized')
+
+    def _start_twitter_pin_flow(self, account_id: str):
+        api_key = self._tw_api_key.text().strip()
+        api_secret = self._tw_api_secret.text().strip()
+        if not api_key or not api_secret:
+            QMessageBox.warning(
+                self,
+                'Missing Credentials',
+                'Enter your Twitter API key and secret before starting PIN flow.',
+            )
+            return
+        try:
+            auth_handler, url = TwitterPlatform.start_pin_flow(api_key, api_secret)
+        except Exception as exc:
+            QMessageBox.warning(self, 'PIN Flow Error', f'Failed to start PIN flow: {exc}')
+            return
+        self._twitter_pin_handlers[account_id] = auth_handler
+        QDesktopServices.openUrl(QUrl(url))
+        widgets = self._twitter_accounts.get(account_id)
+        if widgets:
+            status_label = cast(QLabel, widgets['status'])
+            status_label.setText('PIN flow started. Enter PIN to complete.')
+
+    def _complete_twitter_pin_flow(self, account_id: str):
+        widgets = self._twitter_accounts.get(account_id)
+        if not widgets:
+            return
+        username_edit = cast(QLineEdit, widgets['username'])
+        pin_edit = cast(QLineEdit, widgets['pin'])
+        username = username_edit.text().strip()
+        pin = pin_edit.text().strip()
+        if not username:
+            QMessageBox.warning(self, 'Missing Username', 'Please enter a username first.')
+            return
+        if not pin:
+            QMessageBox.warning(self, 'Missing PIN', 'Please enter the PIN from Twitter.')
+            return
+        auth_handler = self._twitter_pin_handlers.get(account_id)
+        if not auth_handler:
+            QMessageBox.warning(
+                self,
+                'PIN Flow Not Started',
+                'Click "Start PIN Flow" first to generate a PIN.',
+            )
+            return
+        try:
+            access_token, access_secret = TwitterPlatform.complete_pin_flow(auth_handler, pin)
+        except Exception as exc:
+            QMessageBox.warning(self, 'PIN Flow Error', f'Failed to complete PIN flow: {exc}')
+            return
+
+        self._auth_manager.save_account_credentials(
+            account_id,
+            {
+                'access_token': access_token,
+                'access_token_secret': access_secret,
+            },
+        )
+        self._auth_manager.add_account(
+            AccountConfig(
+                platform_id='twitter',
+                account_id=account_id,
+                profile_name=username,
+            )
+        )
+        pin_edit.clear()
+        self._update_twitter_status(account_id)
+
+    def _logout_twitter_account(self, account_id: str):
+        self._auth_manager.clear_account_credentials(account_id)
+        self._auth_manager.remove_account(account_id)
+        widgets = self._twitter_accounts.get(account_id)
+        if not widgets:
+            return
+        username_edit = cast(QLineEdit, widgets['username'])
+        pin_edit = cast(QLineEdit, widgets['pin'])
+        username_edit.clear()
+        pin_edit.clear()
+        self._update_twitter_status(account_id)
 
     def _logout_bluesky(self):
         self._auth_manager.clear_bluesky_auth()

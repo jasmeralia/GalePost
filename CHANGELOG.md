@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-02-21
+- Fix posting and log uploader crashes in the main window.
+- Add Twitter PIN flow with support for a second account in setup/settings.
+- Add WebView login to the setup wizard and validate cookie-based sessions.
+
 ## [1.0.3] - 2026-02-21
 - Install Qt system libraries in CI to prevent `libEGL.so.1` import errors.
 

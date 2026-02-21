@@ -479,8 +479,8 @@ class MainWindow(QMainWindow):
                 continue
             # For API platforms, check credentials exist
             if isinstance(platform, BaseWebViewPlatform):
-                # WebView platforms are always "enabled" if configured
-                enabled.append(account.account_id)
+                if platform.has_valid_session():
+                    enabled.append(account.account_id)
             else:
                 creds = self._auth_manager.get_account_credentials(account.account_id)
                 if creds:
@@ -631,7 +631,7 @@ class MainWindow(QMainWindow):
             platform = self._platforms.get(name)
             if platform:
                 specs = platform.get_specs()
-                if len(text) > specs.max_text_length:
+                if specs.max_text_length is not None and len(text) > specs.max_text_length:
                     self._show_message_box(
                         'Text Too Long',
                         f'Your post is {len(text)} characters, but '
@@ -933,7 +933,7 @@ class MainWindow(QMainWindow):
                 release_notes=update.release_notes,
             )
             self._apply_dialog_theme(dialog)
-            if dialog.exec() == dialog.Accepted:
+            if dialog.exec() == QDialog.DialogCode.Accepted:
                 self._download_update(update)
         else:
             self._show_message_box(
@@ -947,7 +947,7 @@ class MainWindow(QMainWindow):
     def _send_logs(self):
         dialog = LogSubmitDialog(self)
         self._apply_dialog_theme(dialog)
-        if dialog.exec() != dialog.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         notes = dialog.get_notes()

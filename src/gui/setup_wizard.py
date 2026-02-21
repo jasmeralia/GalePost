@@ -1,7 +1,10 @@
 """First-run setup wizard for credential configuration."""
 
-from PyQt6.QtGui import QPalette
+from PyQt6.QtCore import QUrl
+from PyQt6.QtGui import QDesktopServices, QPalette
 from PyQt6.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -15,7 +18,12 @@ from PyQt6.QtWidgets import (
 
 from src.core.auth_manager import AuthManager
 from src.core.logger import get_logger
+from src.platforms.base_webview import BaseWebViewPlatform
 from src.platforms.bluesky import BlueskyPlatform
+from src.platforms.fansly import FanslyPlatform
+from src.platforms.fetlife import FetLifePlatform
+from src.platforms.onlyfans import OnlyFansPlatform
+from src.platforms.snapchat import SnapchatPlatform
 from src.platforms.twitter import TwitterPlatform
 from src.utils.constants import AccountConfig
 
@@ -44,23 +52,19 @@ class WelcomePage(QWizardPage):
 
 
 class TwitterSetupPage(QWizardPage):
-    """Twitter API credentials setup."""
+    """Twitter API credentials setup (PIN flow)."""
 
     def __init__(self, auth_manager: AuthManager, parent=None):
         super().__init__(parent)
         self._auth_manager = auth_manager
-        self._connection_tested = False
+        self._pin_handlers: dict[str, object] = {}
         self.setAutoFillBackground(True)
 
         self.setTitle('Setup - Twitter')
-        self.setSubTitle('Twitter API Credentials')
+        self.setSubTitle('Twitter API Credentials (PIN Flow)')
 
         layout = QVBoxLayout(self)
         form = QFormLayout()
-
-        self._username = QLineEdit()
-        self._username.setPlaceholderText('Required for posting')
-        form.addRow('Username:', self._username)
 
         self._api_key = QLineEdit()
         self._api_key.setPlaceholderText('Enter your API key')
@@ -71,67 +75,161 @@ class TwitterSetupPage(QWizardPage):
         self._api_secret.setPlaceholderText('Enter your API secret')
         form.addRow('API Secret:', self._api_secret)
 
-        self._access_token = QLineEdit()
-        self._access_token.setPlaceholderText('Enter your access token')
-        form.addRow('Access Token:', self._access_token)
-
-        self._access_secret = QLineEdit()
-        self._access_secret.setEchoMode(QLineEdit.EchoMode.Password)
-        self._access_secret.setPlaceholderText('Enter your access token secret')
-        form.addRow('Access Token Secret:', self._access_secret)
-
         layout.addLayout(form)
         layout.addSpacing(10)
 
-        btn_row = QHBoxLayout()
-        test_btn = QPushButton('Test Connection')
-        test_btn.clicked.connect(self._test_connection)
-        btn_row.addWidget(test_btn)
-        btn_row.addStretch()
-        layout.addLayout(btn_row)
+        self._twitter_accounts: dict[str, dict[str, QLineEdit | QLabel]] = {}
+        for account_id, label in [
+            ('twitter_1', 'Twitter Account 1'),
+            ('twitter_2', 'Twitter Account 2'),
+        ]:
+            layout.addWidget(QLabel(f'<b>{label}</b>'))
 
-        self._status_label = QLabel()
-        layout.addWidget(self._status_label)
+            account_form = QFormLayout()
+            username_edit = QLineEdit()
+            username_edit.setPlaceholderText('Required for posting')
+            account_form.addRow('Username:', username_edit)
+
+            pin_edit = QLineEdit()
+            pin_edit.setPlaceholderText('Enter PIN from Twitter')
+            account_form.addRow('PIN:', pin_edit)
+
+            btn_row = QHBoxLayout()
+            start_btn = QPushButton('Start PIN Flow')
+            start_btn.clicked.connect(lambda _=False, aid=account_id: self._start_pin_flow(aid))
+            btn_row.addWidget(start_btn)
+            complete_btn = QPushButton('Complete PIN')
+            complete_btn.clicked.connect(
+                lambda _=False, aid=account_id: self._complete_pin_flow(aid)
+            )
+            btn_row.addWidget(complete_btn)
+            btn_row.addStretch()
+            account_form.addRow('', btn_row)
+
+            status_label = QLabel()
+            account_form.addRow('Status:', status_label)
+
+            layout.addLayout(account_form)
+            layout.addSpacing(8)
+
+            self._twitter_accounts[account_id] = {
+                'username': username_edit,
+                'pin': pin_edit,
+                'status': status_label,
+            }
+
         layout.addStretch()
 
         # Pre-fill if credentials exist
-        existing = self._auth_manager.get_twitter_auth()
-        if existing:
-            self._username.setText(existing.get('username', ''))
-            self._api_key.setText(existing.get('api_key', ''))
-            self._api_secret.setText(existing.get('api_secret', ''))
-            self._access_token.setText(existing.get('access_token', ''))
-            self._access_secret.setText(existing.get('access_token_secret', ''))
+        existing_app = (
+            self._auth_manager.get_twitter_app_credentials()
+            or self._auth_manager.get_twitter_auth()
+        )
+        if existing_app:
+            self._api_key.setText(existing_app.get('api_key', ''))
+            self._api_secret.setText(existing_app.get('api_secret', ''))
+        for account_id, widgets in self._twitter_accounts.items():
+            account = self._auth_manager.get_account(account_id)
+            if account:
+                widgets['username'].setText(account.profile_name)
+            self._update_status(account_id)
 
-    def _test_connection(self):
-        self._save_creds()
-        platform = TwitterPlatform(self._auth_manager)
-        success, error = platform.test_connection()
-
-        if success:
-            self._status_label.setText(
-                '<span style="color: #4CAF50; font-weight: bold;">'
-                '\u2713 Connected successfully!</span>'
+    def _update_status(self, account_id: str):
+        widgets = self._twitter_accounts.get(account_id)
+        if not widgets:
+            return
+        creds = self._auth_manager.get_account_credentials(account_id) or {}
+        if all(k in creds for k in ('access_token', 'access_token_secret')):
+            widgets['status'].setText(
+                '<span style="color: #4CAF50; font-weight: bold;">\u2713 Authorized</span>'
             )
-            self._connection_tested = True
         else:
-            self._status_label.setText(
-                f'<span style="color: #F44336;">\u274c Connection failed: {error}</span>'
-            )
+            widgets['status'].setText('Not authorized')
 
-    def _save_creds(self):
-        key = self._api_key.text().strip()
-        secret = self._api_secret.text().strip()
-        token = self._access_token.text().strip()
-        token_secret = self._access_secret.text().strip()
-        username = self._username.text().strip()
-        if key and secret and token and token_secret and username:
-            self._auth_manager.save_twitter_auth(
-                key, secret, token, token_secret, username=username
+    def _start_pin_flow(self, account_id: str):
+        api_key = self._api_key.text().strip()
+        api_secret = self._api_secret.text().strip()
+        if not api_key or not api_secret:
+            QMessageBox.warning(
+                self,
+                'Missing Credentials',
+                'Enter your Twitter API key and secret before starting PIN flow.',
             )
+            return
+        try:
+            auth_handler, url = TwitterPlatform.start_pin_flow(api_key, api_secret)
+        except Exception as exc:
+            QMessageBox.warning(self, 'PIN Flow Error', f'Failed to start PIN flow: {exc}')
+            return
+        self._pin_handlers[account_id] = auth_handler
+        QDesktopServices.openUrl(QUrl(url))
+        widgets = self._twitter_accounts.get(account_id)
+        if widgets:
+            widgets['status'].setText('PIN flow started. Enter PIN to complete.')
+
+    def _complete_pin_flow(self, account_id: str):
+        widgets = self._twitter_accounts.get(account_id)
+        if not widgets:
+            return
+        username = widgets['username'].text().strip()
+        pin = widgets['pin'].text().strip()
+        if not username:
+            QMessageBox.warning(self, 'Missing Username', 'Please enter a username first.')
+            return
+        if not pin:
+            QMessageBox.warning(self, 'Missing PIN', 'Please enter the PIN from Twitter.')
+            return
+        auth_handler = self._pin_handlers.get(account_id)
+        if not auth_handler:
+            QMessageBox.warning(
+                self,
+                'PIN Flow Not Started',
+                'Click "Start PIN Flow" first to generate a PIN.',
+            )
+            return
+        try:
+            access_token, access_secret = TwitterPlatform.complete_pin_flow(auth_handler, pin)
+        except Exception as exc:
+            QMessageBox.warning(self, 'PIN Flow Error', f'Failed to complete PIN flow: {exc}')
+            return
+
+        self._auth_manager.save_twitter_app_credentials(
+            self._api_key.text().strip(),
+            self._api_secret.text().strip(),
+        )
+        self._auth_manager.save_account_credentials(
+            account_id,
+            {
+                'access_token': access_token,
+                'access_token_secret': access_secret,
+            },
+        )
+        self._auth_manager.add_account(
+            AccountConfig(
+                platform_id='twitter',
+                account_id=account_id,
+                profile_name=username,
+            )
+        )
+        widgets['pin'].clear()
+        self._update_status(account_id)
 
     def validatePage(self) -> bool:  # noqa: N802
-        self._save_creds()
+        api_key = self._api_key.text().strip()
+        api_secret = self._api_secret.text().strip()
+        if api_key and api_secret:
+            self._auth_manager.save_twitter_app_credentials(api_key, api_secret)
+        for account_id, widgets in self._twitter_accounts.items():
+            username = widgets['username'].text().strip()
+            creds = self._auth_manager.get_account_credentials(account_id) or {}
+            if username and all(k in creds for k in ('access_token', 'access_token_secret')):
+                self._auth_manager.add_account(
+                    AccountConfig(
+                        platform_id='twitter',
+                        account_id=account_id,
+                        profile_name=username,
+                    )
+                )
         return True
 
 
@@ -413,6 +511,7 @@ class WebViewPlatformSetupPage(QWizardPage):
         self._auth_manager = auth_manager
         self._platform_id = platform_id
         self._account_id = account_id
+        self._platform_name = platform_name
         self.setAutoFillBackground(True)
 
         self.setTitle(f'Setup - {platform_name}')
@@ -422,8 +521,8 @@ class WebViewPlatformSetupPage(QWizardPage):
 
         info = QLabel(
             f'{platform_name} uses an <b>embedded browser</b> for posting. '
-            f'You will log in when you first post — your session cookies '
-            f'are stored locally on your computer.<br><br>'
+            f'You can log in now to save your session cookies, or skip and '
+            f'log in later when you post.<br><br>'
             f'Enter a profile name below so you can identify this account, '
             f'or leave blank to skip.'
         )
@@ -436,12 +535,70 @@ class WebViewPlatformSetupPage(QWizardPage):
         self._profile_name.setPlaceholderText(f'{platform_name} username')
         form.addRow('Profile Name:', self._profile_name)
         layout.addLayout(form)
+        layout.addSpacing(8)
+
+        login_row = QHBoxLayout()
+        self._login_btn = QPushButton('Open Login Window')
+        self._login_btn.clicked.connect(self._open_login_window)
+        login_row.addWidget(self._login_btn)
+        login_row.addStretch()
+        layout.addLayout(login_row)
+
+        self._status_label = QLabel('Login not detected')
+        layout.addWidget(self._status_label)
         layout.addStretch()
 
         # Pre-fill
         existing = self._auth_manager.get_account(account_id)
         if existing:
             self._profile_name.setText(existing.profile_name)
+        self._update_login_status()
+
+    def _create_platform(self) -> BaseWebViewPlatform | None:
+        platform_map = {
+            'snapchat': SnapchatPlatform,
+            'onlyfans': OnlyFansPlatform,
+            'fansly': FanslyPlatform,
+            'fetlife': FetLifePlatform,
+        }
+        platform_cls = platform_map.get(self._platform_id)
+        if not platform_cls:
+            return None
+        profile_name = self._profile_name.text().strip()
+        return platform_cls(  # type: ignore[abstract]
+            account_id=self._account_id,
+            profile_name=profile_name,
+        )
+
+    def _update_login_status(self):
+        platform = self._create_platform()
+        if platform and platform.has_valid_session():
+            self._status_label.setText(
+                '<span style="color: #4CAF50; font-weight: bold;">\u2713 Login detected</span>'
+            )
+        else:
+            self._status_label.setText('Login not detected')
+
+    def _open_login_window(self):
+        name = self._profile_name.text().strip()
+        if not name:
+            QMessageBox.warning(
+                self,
+                'Missing Profile Name',
+                'Please enter a profile name before logging in.',
+            )
+            return
+        platform = self._create_platform()
+        if not platform:
+            QMessageBox.warning(
+                self,
+                'Unsupported Platform',
+                'This platform does not support embedded login.',
+            )
+            return
+        dialog = WebViewLoginDialog(platform, self._platform_name, self)
+        dialog.exec()
+        self._update_login_status()
 
     def validatePage(self) -> bool:  # noqa: N802
         name = self._profile_name.text().strip()
@@ -454,6 +611,33 @@ class WebViewPlatformSetupPage(QWizardPage):
                 )
             )
         return True
+
+
+class WebViewLoginDialog(QDialog):
+    """Dialog that lets users log in via embedded WebView."""
+
+    def __init__(self, platform: BaseWebViewPlatform, platform_name: str, parent=None):
+        super().__init__(parent)
+        self._platform = platform
+        self.setWindowTitle(f'Log in to {platform_name}')
+        self.setMinimumSize(900, 700)
+
+        layout = QVBoxLayout(self)
+        info = QLabel(
+            'Log in to your account below. Close this window once you are signed in. '
+            'Your session cookies are stored locally for future posts.'
+        )
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        view = self._platform.create_webview(self)
+        layout.addWidget(view)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+        self._platform.navigate_to_composer()
 
 
 class SetupWizard(QWizard):

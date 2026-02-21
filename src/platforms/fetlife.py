@@ -11,6 +11,7 @@ class FetLifePlatform(BaseWebViewPlatform):
     TEXT_SELECTOR = 'textarea#status_body'
     SUCCESS_URL_PATTERN = r'fetlife\.com/users/\d+/statuses/\d+'
     SUCCESS_SELECTOR = ''
+    COOKIE_DOMAINS = ['fetlife.com']
     PREFILL_DELAY_MS = 200  # Traditional server-rendered pages load fast
 
     def get_platform_name(self) -> str:

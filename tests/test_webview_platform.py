@@ -1,5 +1,10 @@
 """Tests for WebView platform infrastructure."""
 
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
 from src.platforms.base_webview import BaseWebViewPlatform
 from src.utils.constants import PlatformSpecs
 
@@ -10,6 +15,7 @@ class ConcreteWebViewPlatform(BaseWebViewPlatform):
     COMPOSER_URL = 'https://example.com/compose'
     TEXT_SELECTOR = 'textarea.composer'
     SUCCESS_URL_PATTERN = r'example\.com/post/\d+'
+    COOKIE_DOMAINS = ['example.com']
 
     def get_platform_name(self) -> str:
         return 'TestPlatform'
@@ -88,3 +94,40 @@ def test_base_webview_post_returns_error():
 def test_webview_panel_importable():
     """Verify the WebView panel module can be imported."""
     from src.gui.webview_panel import WebViewPanel  # noqa: F401
+
+
+def _write_cookie_db(path: Path, host: str):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(path) as conn:
+        cursor = conn.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS cookies (host_key TEXT)')
+        cursor.execute('INSERT INTO cookies (host_key) VALUES (?)', (host,))
+        conn.commit()
+
+
+def test_base_webview_has_valid_session_false_without_cookie(monkeypatch, tmp_path):
+    import src.platforms.base_webview as base_webview
+
+    monkeypatch.setattr(base_webview, 'get_app_data_dir', lambda: tmp_path)
+    platform = ConcreteWebViewPlatform(account_id='test_1')
+    assert platform.has_valid_session() is False
+
+
+def test_base_webview_has_valid_session_true_with_cookie(monkeypatch, tmp_path):
+    import src.platforms.base_webview as base_webview
+
+    monkeypatch.setattr(base_webview, 'get_app_data_dir', lambda: tmp_path)
+    platform = ConcreteWebViewPlatform(account_id='test_1')
+    cookie_path = tmp_path / 'webprofiles' / 'test_1' / 'Cookies'
+    _write_cookie_db(cookie_path, '.example.com')
+    assert platform.has_valid_session() is True
+
+
+def test_base_webview_test_connection_uses_cookie_check(monkeypatch, tmp_path):
+    import src.platforms.base_webview as base_webview
+
+    monkeypatch.setattr(base_webview, 'get_app_data_dir', lambda: tmp_path)
+    platform = ConcreteWebViewPlatform(account_id='test_1')
+    success, error = platform.test_connection()
+    assert success is False
+    assert error == 'WV-SESSION-EXPIRED'

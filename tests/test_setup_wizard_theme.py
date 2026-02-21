@@ -4,6 +4,9 @@ from src.gui.setup_wizard import SetupWizard
 
 
 class DummyAuthManager:
+    def get_twitter_app_credentials(self):
+        return None
+
     def get_twitter_auth(self):
         return None
 
